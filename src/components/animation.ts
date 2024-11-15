@@ -1,5 +1,3 @@
-import { IDrawable } from "../drawables/index"
-
 export interface Frame2D {
     sx: number
     sy: number
@@ -18,6 +16,7 @@ export abstract class Animation2D implements IAnimation<Frame2D> {
         public frames: { [k: number]: Frame2D },
         public duration: number
     ) {}
+
     abstract update(): number
     
     static fromUV(
@@ -49,17 +48,27 @@ export abstract class Animation2D implements IAnimation<Frame2D> {
                     sh: eh,
                 }
             }
-            console.table(frames)
+            // console.table(frames)
         }
         return new ConcreteAnimation2D(frames, duration)
     }
 }
 
 class ConcreteAnimation2D extends Animation2D {
-    // 还没实现
+
     update(): number {
-        return 1
+        const now = performance.now() % this.duration
+        let animTime = 0
+
+        Object.keys(this.frames).forEach((time, i, arr) => {
+            if (now > +time && now <= +arr[i + 1]) {
+                animTime = +time
+            }
+        })
+
+        return animTime
     }
+
     constructor(
         public frames: { [k: number]: Frame2D },
         public duration: number
