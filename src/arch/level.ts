@@ -141,7 +141,7 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer {
             ]
         }
 
-        return orderedRenderInfoList.filter(({ drawable, z, transform }) => {
+        return orderedRenderInfoList.filter(({ drawable, z, transform }: RenderInfo) => {
             if (drawable.type === 'text') {
                 return true
             }
