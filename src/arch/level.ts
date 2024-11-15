@@ -19,6 +19,14 @@ export interface IWindowManager {
     createPainter(canvas: HTMLCanvasElement, scheduler: RenderScheduler): IPainter
 }
 
+export interface RenderInfo {
+    drawable: IDrawable
+    transform: DOMMatrix
+    z: number
+    alpha: number
+    debug: boolean
+}
+
 export class Level implements INodeManager, IWindowManager, ILevelRenderer {
     readonly Root: INode = new KNode('root', null as any)
 
@@ -127,7 +135,7 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer {
 
     private culling(renderInfoList: RenderInfo[]): RenderInfo[] {
         const orderedRenderInfoList = renderInfoList.splice(0, renderInfoList.length)
-            .toSorted((a, b) => a.z - b.z)
+            .sort((a, b) => a.z - b.z)
 
         const { w, h, x, y, z, fov } = this.camera!
         const ratio = w / h
@@ -236,12 +244,4 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer {
         renderInfoList.forEach(({ drawable, transform }) => this.painter?.paint(drawable, transform))
         tick()
     }
-}
-
-export interface RenderInfo {
-    drawable: IDrawable
-    transform: DOMMatrix
-    z: number
-    alpha: number
-    debug: boolean
 }

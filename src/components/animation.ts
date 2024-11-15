@@ -1,3 +1,6 @@
+import { Component } from "../arch/component.js"
+import { Level } from "../arch/level.js"
+
 export interface Frame2D {
     sx: number
     sy: number
@@ -9,6 +12,7 @@ export interface IAnimation<Frame> {
     frames: { [k: number]: Frame }
     duration: number
     update(): number
+    getFrame(time: number): Frame
 }
 
 export abstract class Animation2D implements IAnimation<Frame2D> {
@@ -16,8 +20,6 @@ export abstract class Animation2D implements IAnimation<Frame2D> {
         public frames: { [k: number]: Frame2D },
         public duration: number
     ) {}
-
-    abstract update(): number
     
     static fromUV(
         w: number,
@@ -52,6 +54,33 @@ export abstract class Animation2D implements IAnimation<Frame2D> {
         }
         return new ConcreteAnimation2D(frames, duration)
     }
+
+    abstract update(): number
+
+    getFrame(t: number): Frame2D {
+        let lastKeyframeTime = 0
+        const orderedKeys = Object.keys(this.frames).map(k => +k).sort((a, b) => a - b)
+        for (const time of orderedKeys) {
+            const frame = this.frames[time]
+
+            if (lastKeyframeTime === +time) {
+                return frame
+            }
+
+            if (lastKeyframeTime === 0) {
+                lastKeyframeTime = +time
+                continue
+            }
+
+            if (t > +lastKeyframeTime && t <= +time) {
+                return frame
+            }
+
+            lastKeyframeTime = +time
+        }
+
+        return this.frames[orderedKeys.at(-1)!]
+    }
 }
 
 class ConcreteAnimation2D extends Animation2D {
@@ -74,5 +103,28 @@ class ConcreteAnimation2D extends Animation2D {
         public duration: number
     ) {
         super(frames, duration);
+    }
+}
+
+export abstract class AnimationController extends Component {
+
+    abstract state(str: string): void
+
+    private _playingAnim?: IAnimation<any>
+    play<F>(anim: IAnimation<F>): void {
+        this._playingAnim = anim
+    }
+
+    start(): void {}
+    update(): void {
+        if (!this._playingAnim) {
+            return
+        }
+
+        this._playingAnim.update()
+    }
+
+    setState(state: string) {
+        this.state(state)
     }
 }
