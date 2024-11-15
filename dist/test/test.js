@@ -19,4 +19,4 @@ const playerRes = await unbox(imageBitmapRes('../assets/player.png'));
 const [playerSprite] = player.addComponent(Sprite.create({
     drawable: new DefaultImageDrawable(playerRes, 0, 0)
 }));
-Animation2D.fromUV(560, 184, 0, 0, 46, 46, 48);
+Animation2D.fromUV(560, 184, 0, 0, 46, 46, 48, 480);

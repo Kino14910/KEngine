@@ -50,4 +50,4 @@ const [playerSprite] = player.addComponent(
     })
 )
 
-Animation2D.fromUV(560, 184, 0, 0, 46, 46, 48)
+Animation2D.fromUV(560, 184, 0, 0, 46, 46, 48, 480)

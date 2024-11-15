@@ -27,30 +27,43 @@ export abstract class Animation2D implements IAnimation<Frame2D> {
         v: number,
         ew: number,
         eh: number,
-        count: number
-    ): { [k: number]: Frame2D } {
+        count: number,
+        duration: number
+    ): Animation2D {
         const frames: { [k: number]: Frame2D } = {}
+        const durationPerFrame = duration / count
         //纵向精灵图
         if(w === ew) 
             [w, h, u, v, ew, eh] = [h, w, v, u, eh, ew]
         //横向精灵图
-        let lineCount = Math.floor(w / ew)
-        while(count >= lineCount) {
-            console.log(count)
-            for (let i = 0; i < lineCount; i++) {
-                console.log(i)
-                frames[i] = {
+        let countPerLine = Math.floor(w / ew)
+        let lineCount = Math.ceil(count / countPerLine)
+        for (let line = 0; line < lineCount; line++) {
+            for (let i = 0; i < countPerLine; i++) {
+                const index = line * countPerLine + i
+                if (index >= count) break
+                frames[index * durationPerFrame] = {
                     sx: u + ew * i,
-                    sy: v,
-                    sw: ew - 2 * u,
-                    sh: eh - 2 * v,
+                    sy: v + eh * line,
+                    sw: ew,
+                    sh: eh,
                 }
             }
-            
-            lineCount *= 2
-            h += eh
             console.table(frames)
         }
-        return frames
+        return new ConcreteAnimation2D(frames, duration)
+    }
+}
+
+class ConcreteAnimation2D extends Animation2D {
+    // 还没实现
+    update(): number {
+        return 1
+    }
+    constructor(
+        public frames: { [k: number]: Frame2D },
+        public duration: number
+    ) {
+        super(frames, duration);
     }
 }
