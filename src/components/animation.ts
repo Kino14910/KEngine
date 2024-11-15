@@ -1,5 +1,4 @@
 import { Component } from "../arch/component.js"
-import { Level } from "../arch/level.js"
 
 export interface Frame2D {
     sx: number
@@ -85,34 +84,41 @@ export abstract class Animation2D implements IAnimation<Frame2D> {
 
 class ConcreteAnimation2D extends Animation2D {
 
+    lastTime = 0
+    timer = 0
     update(): number {
-        const now = performance.now() % this.duration
-        let animTime = 0
+        if (this.lastTime === 0) {
+            this.lastTime = performance.now()
+            return 0
+        }
 
-        Object.keys(this.frames).forEach((time, i, arr) => {
-            if (now > +time && now <= +arr[i + 1]) {
-                animTime = +time
-            }
-        })
-
-        return animTime
+        const now = performance.now()
+        const deltaTime = now - this.lastTime
+        this.lastTime = now
+        this.timer += deltaTime
+        return this.timer
     }
 
     constructor(
         public frames: { [k: number]: Frame2D },
         public duration: number
     ) {
-        super(frames, duration);
+        super(frames, duration)
     }
 }
 
-export abstract class AnimationController extends Component {
+export abstract class AnimationController<F> extends Component {
 
-    abstract state(str: string): void
+    abstract state(str: string): string
+    abstract drawFrame(frame: any): void
 
-    private _playingAnim?: IAnimation<any>
-    play<F>(anim: IAnimation<F>): void {
+    private _playingAnim?: IAnimation<F>
+    play(anim: IAnimation<F>): void {
         this._playingAnim = anim
+    }
+
+    playingAnim(): IAnimation<F> | undefined {
+        return this._playingAnim
     }
 
     start(): void {}
@@ -121,10 +127,23 @@ export abstract class AnimationController extends Component {
             return
         }
 
-        this._playingAnim.update()
+        const time = this._playingAnim.update()
+        if (time > this._playingAnim.duration) {
+            this._playingAnim = undefined
+            return
+        }
+
+        const frame = this._playingAnim.getFrame(time)
+        this.drawFrame(frame)
     }
 
+    private _state: string = ''
     setState(state: string) {
-        this.state(state)
+        if (state === this._state) {
+            return
+        }
+
+        const animState = this.state(state)
+        this._state = animState
     }
 }
