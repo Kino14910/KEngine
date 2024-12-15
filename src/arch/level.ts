@@ -7,6 +7,10 @@ import { IRenderer, Renderer, RenderScheduler } from "../renderer/renderer.js"
 import { Input } from "./input.js"
 import { INode, INodeManager, InsertPosition, KNode } from "./node.js"
 
+export interface IComponentsManager {
+    start(): void
+}
+
 export interface ILevelRenderer {
     camera?: Camera2D
     renderLevel(tick: () => void): void
@@ -27,7 +31,7 @@ export interface RenderInfo {
     debug: boolean
 }
 
-export class Level implements INodeManager, IWindowManager, ILevelRenderer {
+export class Level implements INodeManager, IWindowManager, ILevelRenderer, IComponentsManager {
     readonly Root: INode = new KNode('root', null as any)
 
     public renderer?: IRenderer
@@ -101,12 +105,13 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer {
         return this.renderer || (this.renderer = this.painter!.renderer)
     }
 
-    createPainter(canvas: HTMLCanvasElement, scheduler: RenderScheduler): IPainter {
+    createPainter(canvas: HTMLCanvasElement, scheduler: RenderScheduler, pixelArt=false): IPainter {
         const painter = new Painter(
             new Renderer(
                 canvas,
                 new DrawReceiver(),
-                scheduler
+                scheduler,
+                pixelArt
             )
         )
 
@@ -243,5 +248,9 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer {
 
         renderInfoList.forEach(({ drawable, transform }) => this.painter?.paint(drawable, transform))
         tick()
+    }
+
+    start(): void {
+        this.traverse(this.Root, node => node.componentManager.start(node))
     }
 }

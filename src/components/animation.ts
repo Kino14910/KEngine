@@ -1,4 +1,5 @@
 import { Component } from "../arch/component.js"
+import { Sprite } from "./sprite.js"
 
 export interface Frame2D {
     sx: number
@@ -8,19 +9,26 @@ export interface Frame2D {
 }
 
 export interface IAnimation<Frame> {
+    sprite: Sprite,
     frames: { [k: number]: Frame }
     duration: number
+    loop: boolean
     update(): number
     getFrame(time: number): Frame
 }
 
 export abstract class Animation2D implements IAnimation<Frame2D> {
     constructor(
+        public sprite: Sprite,
         public frames: { [k: number]: Frame2D },
-        public duration: number
+        public duration: number,
+        public loop: boolean = true
     ) {}
     
     static fromUV(
+        sprite: Sprite,
+        duration: number,
+        loop: boolean,
         w: number,
         h: number,
         u: number,
@@ -28,7 +36,6 @@ export abstract class Animation2D implements IAnimation<Frame2D> {
         ew: number,
         eh: number,
         count: number,
-        duration: number
     ): Animation2D {
         const frames: { [k: number]: Frame2D } = {}
         const durationPerFrame = duration / count
@@ -51,7 +58,7 @@ export abstract class Animation2D implements IAnimation<Frame2D> {
             }
             // console.table(frames)
         }
-        return new ConcreteAnimation2D(frames, duration)
+        return new ConcreteAnimation2D(sprite, frames, duration, loop)
     }
 
     abstract update(): number
@@ -62,7 +69,7 @@ export abstract class Animation2D implements IAnimation<Frame2D> {
         for (const time of orderedKeys) {
             const frame = this.frames[time]
 
-            if (lastKeyframeTime === +time) {
+            if (t === +time) {
                 return frame
             }
 
@@ -84,8 +91,8 @@ export abstract class Animation2D implements IAnimation<Frame2D> {
 
 class ConcreteAnimation2D extends Animation2D {
 
-    lastTime = 0
-    timer = 0
+    private lastTime = 0
+    private timer = 0
     update(): number {
         if (this.lastTime === 0) {
             this.lastTime = performance.now()
@@ -96,14 +103,18 @@ class ConcreteAnimation2D extends Animation2D {
         const deltaTime = now - this.lastTime
         this.lastTime = now
         this.timer += deltaTime
-        return this.timer
+        return this.loop
+            ? this.timer % this.duration
+            : this.timer
     }
 
     constructor(
+        public sprite: Sprite,
         public frames: { [k: number]: Frame2D },
-        public duration: number
+        public duration: number,
+        public loop: boolean = true,
     ) {
-        super(frames, duration)
+        super(sprite, frames, duration, loop)
     }
 }
 
@@ -115,6 +126,10 @@ export abstract class AnimationController<F> extends Component {
     private _playingAnim?: IAnimation<F>
     play(anim: IAnimation<F>): void {
         this._playingAnim = anim
+    }
+
+    stop() {
+        this._playingAnim = undefined
     }
 
     playingAnim(): IAnimation<F> | undefined {
@@ -143,7 +158,10 @@ export abstract class AnimationController<F> extends Component {
             return
         }
 
-        const animState = this.state(state)
-        this._state = animState
+        this._state = this.state(state)
+    }
+
+    getState(): string {
+        return this._state
     }
 }

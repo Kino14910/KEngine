@@ -20,8 +20,15 @@ export class Renderer implements IRenderer {
         canvas: HTMLCanvasElement,
         private receiver: IDrawReceiver,
         private scheduler: RenderScheduler,
+        public pixelArt: boolean = false,
     ){
         this.ctx = canvas.getContext("2d") as CanvasRenderingContext2D
+        if (pixelArt) {
+            this.ctx.imageSmoothingEnabled = false
+        } else {
+            this.ctx.imageSmoothingEnabled = true
+        }
+
         this.init()
         Renderer.instance = this
     }

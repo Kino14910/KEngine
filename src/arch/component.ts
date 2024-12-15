@@ -9,11 +9,12 @@ export function constructorOf<T>(inst: T): ConstructorOf<T> {
 }
 
 export interface IComponent {
-    start(): void
+    start(manager: IComponentManager, node: INode): void
     update(lvl: Level): void
     getNode(): INode
     getComponentManager(): IComponentManager
     getAncestorComponents<T=IComponent>(ctor: ConstructorOf<T>, toAncestor?: INode): T[][]
+    getComponent<T=IComponent>(ctor: ConstructorOf<T>): T[]
 }
 
 export interface IComponentManager{
@@ -21,6 +22,7 @@ export interface IComponentManager{
     add(node: INode, ...component: IComponent[]): void
     clear(): void
     updateComponents(lvl: Level): void
+    start(node: INode): void
 }
 
 export class ComponentManager implements IComponentManager {
@@ -42,7 +44,6 @@ export class ComponentManager implements IComponentManager {
                 comp[ComponentManager.MANAGER_TAG] = this
                 //@ts-ignore
                 comp[ComponentManager.NODE_TAG] = node
-                comp.start()
             }
 
             const ctor = constructorOf(comp)
@@ -55,6 +56,10 @@ export class ComponentManager implements IComponentManager {
             componentSet.add(comp)
             this.components.set(ctor, componentSet)
         }
+    }
+
+    start(node: INode) {
+        this.components.forEach(v => v.forEach(c => c.start(this, node)))
     }
 
     clear(): void {
@@ -95,5 +100,9 @@ export abstract class Component implements IComponent {
         }
 
         return result
+    }
+
+    getComponent<T = IComponent>(ctor: ConstructorOf<T>): T[] {
+        return Array.from(this.getComponentManager().get(ctor))
     }
 }

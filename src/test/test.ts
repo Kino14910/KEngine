@@ -14,7 +14,8 @@ const { scheduler } = renderSchedulerFactory.produce('rAF', t => lvl.renderLevel
 
 lvl.createPainter(
     document.querySelector('#canvas') as HTMLCanvasElement,
-    scheduler
+    scheduler,
+    true
 )
 
 const bg = lvl.insert(
@@ -42,26 +43,42 @@ const player = lvl.insert(
     lvl.Root
 )
 
-const playerRes = <ImageBitmap> await unbox(imageBitmapRes('../assets/player.png'))
-const [ playerSprite ] = player.addComponent(
+const playerIdleRes = <ImageBitmap> await unbox(imageBitmapRes('../assets/idle.png'))
+const playerRunRes = <ImageBitmap> await unbox(imageBitmapRes('../assets/run.png'))
+const [ playerSprite, playerRunSprite ] = player.addComponent(
     Sprite.create<IImage>({
         drawable: new DefaultImageDrawable(
-            playerRes, 
-            0,0
+            playerRunRes, 
+            0, 0, 400, 400,
+            0, 0, 180, 180
         )
-    })
+    }),
+    Sprite.create<IImage>({
+        drawable: new DefaultImageDrawable(
+            playerIdleRes, 
+            0, 0, 400, 400,
+            0, 0, 180, 180
+        )
+    }),
 )
 
 class PlayerAnimController extends AnimationController<Frame2D> {
-    readonly testAnim1 = Animation2D.fromUV(560, 184, 0, 0, 46, 46, 48, 1000)
+    readonly walkLeft = Animation2D.fromUV(playerRunSprite, 1000, true, 1440, 180, 0, 0, 180, 180, 8)
+    readonly idle = Animation2D.fromUV(playerSprite, 1000, true, 1980, 180, 0, 0, 180, 180, 11)
 
     state(str: string): string {
         if (str === 'walkLeft') {
-            this.play(this.testAnim1)
+            this.play(this.walkLeft)
             return 'walkLeft'
         }
 
-        return ''
+        if (str === 'idle') {
+            // this.play(this.idle)
+
+            return 'idle'
+        }
+
+        return 'idleright'
     }
 
     drawFrame(frame: Frame2D): void {
@@ -80,13 +97,29 @@ class PlayerAnimController extends AnimationController<Frame2D> {
 const [ playerAnimController ] = player.addComponent(new PlayerAnimController())
 
 class PlayerController extends Component {
-    start(): void {}
+    facing: string = 'right'
+
+    start(): void {
+
+    }
+
     update(): void {
-        if (Input.isKeyPressing('KeyA')) {
-            playerAnimController.setState('walkLeft')
-        }
+        this.updateAnim()
     }
     
+    updateAnim() {
+        if (Input.isKeyPressing('KeyA')) {
+            return playerAnimController.setState('walkLeft')
+        }
+
+        playerAnimController.setState('idle' + this.facing)
+    }
+
+    updateFacing() {
+        if (this.facing === 'right') {
+            
+        }
+    }
 }
 
 const [ playerController ] = player.addComponent(new PlayerController())
