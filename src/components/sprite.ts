@@ -28,9 +28,9 @@ export class Sprite<T extends IDrawable = IDrawable> extends Component implement
     }
 
     constructor(
-        public readonly drawable: T,
-        public readonly transform: DOMMatrix = new DOMMatrix(),
-        public readonly anchor: [number, number] = [0.5, 0.5],
+        public drawable: T,
+        public transform: DOMMatrix = new DOMMatrix(),
+        public anchor: [number, number] = [0.5, 0.5],
         public z = 0,
         public alpha = 1,
         public debug = false,

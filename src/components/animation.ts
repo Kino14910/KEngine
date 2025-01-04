@@ -1,4 +1,6 @@
 import { Component } from "../arch/component.js"
+import { ifLet, Option } from "../arch/match.js"
+import { IImage } from "../drawables/image.js"
 import { Sprite } from "./sprite.js"
 
 export interface Frame2D {
@@ -9,7 +11,6 @@ export interface Frame2D {
 }
 
 export interface IAnimation<Frame> {
-    sprite: Sprite,
     frames: { [k: number]: Frame }
     duration: number
     loop: boolean
@@ -19,14 +20,14 @@ export interface IAnimation<Frame> {
 
 export abstract class Animation2D implements IAnimation<Frame2D> {
     constructor(
-        public sprite: Sprite,
+        public image: IImage,
         public frames: { [k: number]: Frame2D },
         public duration: number,
         public loop: boolean = true
     ) {}
     
     static fromUV(
-        sprite: Sprite,
+        image: IImage,
         duration: number,
         loop: boolean,
         w: number,
@@ -58,31 +59,32 @@ export abstract class Animation2D implements IAnimation<Frame2D> {
             }
             // console.table(frames)
         }
-        return new ConcreteAnimation2D(sprite, frames, duration, loop)
+        return new ConcreteAnimation2D(image, frames, duration, loop)
     }
 
     abstract update(): number
 
     getFrame(t: number): Frame2D {
         let lastKeyframeTime = 0
-        const orderedKeys = Object.keys(this.frames).map(k => +k).sort((a, b) => a - b)
-        for (const time of orderedKeys) {
-            const frame = this.frames[time]
+        const orderedKeys = Object.keys(this.frames).map(Number).sort((a, b) => a - b)
+        for (const _time of orderedKeys) {
+            const frame = this.frames[_time]
+            const time = Number(_time)
 
-            if (t === +time) {
+            if (t === time) {
                 return frame
             }
 
             if (lastKeyframeTime === 0) {
-                lastKeyframeTime = +time
+                lastKeyframeTime = time
                 continue
             }
 
-            if (t > +lastKeyframeTime && t <= +time) {
+            if (t > lastKeyframeTime && t <= time) {
                 return frame
             }
 
-            lastKeyframeTime = +time
+            lastKeyframeTime = time
         }
 
         return this.frames[orderedKeys.at(-1)!]
@@ -109,19 +111,19 @@ class ConcreteAnimation2D extends Animation2D {
     }
 
     constructor(
-        public sprite: Sprite,
+        public image: IImage,
         public frames: { [k: number]: Frame2D },
         public duration: number,
         public loop: boolean = true,
     ) {
-        super(sprite, frames, duration, loop)
+        super(image, frames, duration, loop)
     }
 }
 
 export abstract class AnimationController<F> extends Component {
 
     abstract state(str: string): string
-    abstract drawFrame(frame: any): void
+    abstract drawFrame(frame: F): void
 
     private _playingAnim?: IAnimation<F>
     play(anim: IAnimation<F>): void {
@@ -132,7 +134,7 @@ export abstract class AnimationController<F> extends Component {
         this._playingAnim = undefined
     }
 
-    playingAnim(): IAnimation<F> | undefined {
+    playing(): IAnimation<F> | undefined {
         return this._playingAnim
     }
 
@@ -163,5 +165,30 @@ export abstract class AnimationController<F> extends Component {
 
     getState(): string {
         return this._state
+    }
+}
+
+export abstract class Animation2DController extends AnimationController<Frame2D> {
+    drawFrame({ sh, sw, sx, sy }: Frame2D): void {
+        ifLet(Option.Some(this.getComponent(Sprite)), 'Some', sprite =>
+            {
+                const playingAnim = this.playing() as ConcreteAnimation2D
+                if (!playingAnim) {
+                    return
+                }
+        
+                const image = playingAnim.image
+                if (image) {
+                    image.sh = sh
+                    image.sw = sw
+                    image.sx = sx
+                    image.sy = sy
+                }
+
+                if (sprite.drawable !== image) {
+                    sprite.drawable = image
+                }
+            }
+        )
     }
 }

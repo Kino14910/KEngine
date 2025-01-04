@@ -6,14 +6,12 @@ export interface IRenderer {
 }
 
 /**
- * execute 是 scheduler 进行一次渲染的调度函数,
- * 每次执行 execute 就进行一次渲染
+ * renderOnce 是 scheduler 进行一次渲染的调度函数,
+ * 每次执行 renderOnce 就进行一次渲染
  */
-export type RenderScheduler = (execute: () => void) => void
+export type RenderScheduler = (renderOnce: () => void) => void
 
 export class Renderer implements IRenderer {
-    static instance: Renderer | null
-
     private ctx : CanvasRenderingContext2D
 
     constructor (
@@ -30,7 +28,6 @@ export class Renderer implements IRenderer {
         }
 
         this.init()
-        Renderer.instance = this
     }
 
     private init() {

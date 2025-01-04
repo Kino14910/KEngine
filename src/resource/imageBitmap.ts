@@ -1,9 +1,9 @@
-import { box } from "./box.js";
-import { fetchBlobTransformer } from "./fetchBlob.js";
-import { Res, ResMut } from "./res.js";
+import { fetchBlobTransformer } from "./fetchBlob.js"
+import { ResMut } from "./res.js"
 
-export class ImageBitmapRes extends ResMut<string, ImageBitmap> {
+export class ImageBitmapResource extends ResMut<string, ImageBitmap> {
     private imageBitmap?: Promise<ImageBitmap>
+    private cached?: ImageBitmap
 
     constructor(
         public src: string
@@ -16,7 +16,13 @@ export class ImageBitmapRes extends ResMut<string, ImageBitmap> {
         return this.imageBitmap as Promise<ImageBitmap>
     }
 
-    [box.value] = () => this.read()
+    unbox() {
+        if (this.cached) {
+            return this.cached
+        }
+
+        throw Error('Cannot unbox a resource which is not loaded.')
+    }
 
     async release() {
         (await this.imageBitmap as ImageBitmap).close()
@@ -25,7 +31,10 @@ export class ImageBitmapRes extends ResMut<string, ImageBitmap> {
     update(value: string): void {
         this.imageBitmap = fetchBlobTransformer.transform(value)
             .then(e => createImageBitmap(e))
+            .then(bitmap => this.cached = bitmap)
     }
 }
 
-export const imageBitmapRes = (src: string): Res<ImageBitmap> => new ImageBitmapRes(src)
+export namespace res {
+    export const bitmap = (src: string) => new ImageBitmapResource(src)
+}

@@ -4,11 +4,13 @@ import { Camera2D } from "../renderer/camera.js"
 import { DrawReceiver } from "../renderer/drawCommand.js"
 import { IPainter, Painter } from "../renderer/painter.js"
 import { IRenderer, Renderer, RenderScheduler } from "../renderer/renderer.js"
-import { Input } from "./input.js"
-import { INode, INodeManager, InsertPosition, KNode } from "./node.js"
+import { ConstructorOf } from "./component.js"
+import { ClientInput } from "./input.js"
+import { INode, INodeManager, InsertPosition, IPrefabManager, KNode, Prefab, Prefabs } from "./node.js"
 
 export interface IComponentsManager {
     start(): void
+    tick(): void
 }
 
 export interface ILevelRenderer {
@@ -31,7 +33,7 @@ export interface RenderInfo {
     debug: boolean
 }
 
-export class Level implements INodeManager, IWindowManager, ILevelRenderer, IComponentsManager {
+export class Level implements INodeManager, IWindowManager, ILevelRenderer, IComponentsManager, IPrefabManager {
     readonly Root: INode = new KNode('root', null as any)
 
     public renderer?: IRenderer
@@ -39,7 +41,7 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer, ICom
     public camera?: Camera2D
 
     constructor() {
-        Input.registerInput()
+        ClientInput.registerInput()
     }
 
     traverse(node: INode, fn: (node: INode, stop: () => void) => void): void {
@@ -241,16 +243,28 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer, ICom
         ctx.restore()
     }
 
-    renderLevel(tick: () => void): void {
+    tick(): void {
+        this.traverse(this.Root, node => node.componentManager.tickComponents(this))
+    }
+
+    renderLevel(renderOnce: () => void): void {
+        if (!this.painter) {
+            return
+        }
+
         this.traverse(this.Root, node => node.componentManager.updateComponents(this))
         let renderInfoList = this.toCameraSpace(this.renderInfoList.splice(0, this.renderInfoList.length))
         renderInfoList = this.culling(renderInfoList)
+        renderInfoList.forEach(({ drawable, transform }) => this.painter!.paint(drawable, transform))
 
-        renderInfoList.forEach(({ drawable, transform }) => this.painter?.paint(drawable, transform))
-        tick()
+        renderOnce()
     }
 
     start(): void {
         this.traverse(this.Root, node => node.componentManager.start(node))
+    }
+
+    async loadPrefab(prefab: ConstructorOf<Prefab>, parent: INode = this.Root): Promise<INode> {
+        return Prefabs.instantiate(this, parent, prefab)
     }
 }

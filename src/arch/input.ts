@@ -1,7 +1,7 @@
 import { Point } from "../drawables/Point.js"
 import { Vec2, Vector2 } from "../stl/vec2.js"
 
-export class Input {
+export class ClientInput {
     static keyPressing: Set<string> = new Set()
     static buttonsPressing: number = 0
     static axis: Vector2 = Vec2.zero()

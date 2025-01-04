@@ -11,17 +11,19 @@ export function constructorOf<T>(inst: T): ConstructorOf<T> {
 export interface IComponent {
     start(manager: IComponentManager, node: INode): void
     update(lvl: Level): void
+    tick?(lvl: Level): void
     getNode(): INode
     getComponentManager(): IComponentManager
-    getAncestorComponents<T=IComponent>(ctor: ConstructorOf<T>, toAncestor?: INode): T[][]
-    getComponent<T=IComponent>(ctor: ConstructorOf<T>): T[]
+    getAncestorComponents<T=IComponent>(ctor: ConstructorOf<T>, toAncestor?: INode): T[]
+    getComponent<T=IComponent>(ctor: ConstructorOf<T>): T | undefined
 }
 
 export interface IComponentManager{
-    get<T = IComponent>(ctor: ConstructorOf<T>): Set<T>
+    get<T = IComponent>(ctor: ConstructorOf<T>): T | undefined
     add(node: INode, ...component: IComponent[]): void
     clear(): void
     updateComponents(lvl: Level): void
+    tickComponents(lvl: Level): void
     start(node: INode): void
 }
 
@@ -29,11 +31,15 @@ export class ComponentManager implements IComponentManager {
     static MANAGER_TAG = Symbol('COMPONENT_MANAGER')
     static NODE_TAG = Symbol('NODE_TAG')
 
-    private components = new Map<ConstructorOf<IComponent>, Set<IComponent>>()
+    private components = new Map<ConstructorOf<IComponent>, IComponent>()
 
-    get<T = IComponent>(ctor: ConstructorOf<T>): Set<T> {
-        return this.components.get(ctor as ConstructorOf<IComponent>) as Set<T>
-            ?? new Set<T>()
+    get<T = IComponent>(ctor: ConstructorOf<T>): T | never {
+        const target = this.components.get(ctor as ConstructorOf<IComponent>)
+        if (!target) {
+            throw Error(`Unkown component named ${ctor.name}`)
+        }
+    
+        return target as T
     }
 
     add(node: INode, ...component: IComponent[]): void {
@@ -47,28 +53,30 @@ export class ComponentManager implements IComponentManager {
             }
 
             const ctor = constructorOf(comp)
-            let componentSet = this.components.get(ctor)
-            if (componentSet) {
-                componentSet.add(comp)
+            let component = this.components.get(ctor)
+            if (component) {
+                this.components.set(ctor, comp)
                 continue
             }
-            componentSet = new Set()
-            componentSet.add(comp)
-            this.components.set(ctor, componentSet)
+
+            this.components.set(ctor, comp)
         }
     }
 
     start(node: INode) {
-        this.components.forEach(v => v.forEach(c => c.start(this, node)))
+        this.components.forEach(c => c.start(this, node))
     }
 
     clear(): void {
-        this.components.forEach(v => v.clear())
         this.components.clear()
     }
 
     updateComponents(lvl: Level): void {
-        this.components.forEach(v => v.forEach(c => c.update(lvl)))
+        this.components.forEach(c => c.update(lvl))
+    }
+
+    tickComponents(lvl: Level): void {
+        this.components.forEach(c => c.tick?.(lvl))
     }
 }
 
@@ -86,8 +94,8 @@ export abstract class Component implements IComponent {
         return this[ComponentManager.MANAGER_TAG]
     }
 
-    getAncestorComponents<T=IComponent>(ctor: ConstructorOf<T>, toAncestor?: INode): T[][] {
-        const result: T[][] = []
+    getAncestorComponents<T=IComponent>(ctor: ConstructorOf<T>, toAncestor?: INode): T[] {
+        const result: T[] = []
         let self = this.getNode().parent
 
         if (!self) {
@@ -95,14 +103,17 @@ export abstract class Component implements IComponent {
         }
 
         while (self !== toAncestor && self.parent) {
-            result.unshift(Array.from(self.componentManager.get(ctor)))
+            const component = self.componentManager.get(ctor)
+            if (component) {
+                result.unshift(component)
+            }
             self = self.parent
         }
 
         return result
     }
 
-    getComponent<T = IComponent>(ctor: ConstructorOf<T>): T[] {
-        return Array.from(this.getComponentManager().get(ctor))
+    getComponent<T = IComponent>(ctor: ConstructorOf<T>): T | undefined {
+        return this.getComponentManager().get(ctor)
     }
 }

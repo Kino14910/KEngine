@@ -1,19 +1,21 @@
-export interface box<T> {}
+export interface box<T> {
+    unbox(): T
+}
 
-const valueOf = Symbol()
-//@ts-ignore
 export function box<T>(v: T): box<T> {
     if (v === undefined || v === null || typeof v === 'function') {
         throw Error('Invalid.')
     }
 
-    //@ts-ignore
-    v[valueOf] = v
+    return {
+        unbox() {
+            return v
+        },
+    }
 }
 
-export function unbox<T>(box: box<T>): T {
-    //@ts-ignore
-    const getter = box[valueOf]
+export function unbox<T extends any>(box: box<T>): T {
+    const getter = box.unbox
     if (typeof getter === 'function') {
         return getter()
     }
@@ -24,5 +26,3 @@ export function unbox<T>(box: box<T>): T {
 
     return getter
 }
-
-box.value = valueOf
