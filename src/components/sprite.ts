@@ -40,7 +40,7 @@ export class Sprite<T extends IDrawable = IDrawable> extends Component implement
 
     start(): void {}
 
-    update(lvl: Level): void {
+    update(_: number, lvl: Level): void {
         lvl.recordRenderInfo(
             this.drawable,
             this.getAncestorComponents(Sprite)

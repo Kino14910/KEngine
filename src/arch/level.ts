@@ -9,6 +9,8 @@ import { ClientInput } from "./input.js"
 import { INode, INodeManager, InsertPosition, IPrefabManager, KNode, Prefab, Prefabs } from "./node.js"
 
 export interface IComponentsManager {
+    deltaTick(): number
+    deltaUpdate(): number
     start(): void
     tick(): void
 }
@@ -42,6 +44,23 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer, ICom
 
     constructor() {
         ClientInput.registerInput()
+    }
+
+    private _lastUpdateTime = 0
+    private _lastTickTime = 0
+
+    deltaTick(): number {
+        const now = Date.now()
+        const delta = now - this._lastTickTime
+        this._lastTickTime = now
+        return delta
+    }
+
+    deltaUpdate(): number {
+        const now = Date.now()
+        const delta = now - this._lastUpdateTime
+        this._lastUpdateTime = now
+        return delta
     }
 
     traverse(node: INode, fn: (node: INode, stop: () => void) => void): void {

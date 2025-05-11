@@ -416,10 +416,6 @@ export class Matrix extends Float64Array {
         return Matrix.multiply(this, t)
     }
 
-    valueOf() {
-        return new Float64Array(this)
-    }
-
     toString() {
         return `${this.m11.toFixed(2)}\t${this.m12.toFixed(2)}\t${this.m13.toFixed(2)}\t${this.m14.toFixed(2)}\n` +
             `${this.m21.toFixed(2)}\t${this.m22.toFixed(2)}\t${this.m23.toFixed(2)}\t${this.m24.toFixed(2)}\n` +

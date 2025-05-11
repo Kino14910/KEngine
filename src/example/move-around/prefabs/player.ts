@@ -2,7 +2,8 @@ import { Component } from "../../../arch/component.js"
 import { ClientInput } from "../../../arch/input.js"
 import { ifLet, match, Option } from "../../../arch/match.js"
 import { INode, INodeManager, InsertPosition, KNode, Prefab } from "../../../arch/node.js"
-import { Animation2DController, Animation2D } from "../../../components/animation.js"
+import { Animation } from "../../../components/anim/animation.js"
+import { SpriteSheetAnimationTrack } from "../../../components/anim/spriteAnimTrack.js"
 import { Sprite } from "../../../components/sprite.js"
 import { DefaultImageDrawable, IImage } from "../../../drawables/image.js"
 import { res } from "../../../resource/imageBitmap.js"
@@ -19,8 +20,8 @@ export class PlayerPrefab implements Prefab {
             nodeManager.Root
         )
 
-        const playerIdleRes = await res.bitmap('../../../src/sample/move-around/assets/idle.png').read()
-        const playerWalkRes = await res.bitmap('../../../src/sample/move-around/assets/run.png').read()
+        const playerIdleRes = await res.bitmap('../../../src/example/move-around/assets/idle.png').read()
+        const playerWalkRes = await res.bitmap('../../../src/example/move-around/assets/run.png').read()
         const playerIdleDImage = new DefaultImageDrawable(
             playerIdleRes, 
             0, 0, 400, 400,
@@ -38,25 +39,38 @@ export class PlayerPrefab implements Prefab {
             }),
         )
         
-        class PlayerAnimController extends Animation2DController {
-            readonly walkLeft = Animation2D.fromUV(playerWalkDImage, 1000, true, 1440, 180, 0, 0, 180, 180, 8)
-            readonly idle = Animation2D.fromUV(playerIdleDImage, 1000, true, 1980, 180, 0, 0, 180, 180, 11)
+        // class PlayerAnimController extends Animation2DController {
+        //     readonly walkLeft = Animation2D.fromUV(playerWalkDImage, 1000, true, 1440, 180, 0, 0, 180, 180, 8)
+        //     readonly idle = Animation2D.fromUV(playerIdleDImage, 1000, true, 1980, 180, 0, 0, 180, 180, 11)
         
-            state(str: string): string {
-                return match<string>(str) (
-                    'walk', state => {
-                        this.play(this.walkLeft)
-                        return state
-                    },
-                    '_', () => {
-                        this.play(this.idle)
-                        return 'idle'
-                    },
-                )
-            }
-        }
+        //     state(str: string): string {
+        //         return match<string>(str) (
+        //             'walk', state => {
+        //                 this.play(this.walkLeft)
+        //                 return state
+        //             },
+        //             '_', () => {
+        //                 this.play(this.idle)
+        //                 return 'idle'
+        //             },
+        //         )
+        //     }
+        // }
         
-        player.addComponent(new PlayerAnimController())
+        const playerIdleAnim = new Animation(10, true)
+        const playerIdleAnimTrack = new SpriteSheetAnimationTrack({
+            spriteResource: playerIdleDImage,
+            originX: 0,
+            originY: 0,
+            width: 1980,
+            height: 180,
+            count: 11,
+            rows: 1,
+            columns: 11,
+        })
+
+        player.addComponent(playerIdleAnim)
+        playerIdleAnim.addTrack(playerIdleAnimTrack)
         
         enum PlayerFacing {
             Right,
@@ -64,13 +78,13 @@ export class PlayerPrefab implements Prefab {
         }
         
         class PlayerController extends Component {
-            animController = Option.None<PlayerAnimController>()
+            // animController = Option.None<PlayerAnimController>()
             sprite = Option.None<Sprite>()
             velocity: Vec2 = Vec2.from(0, 0)
             facing = PlayerFacing.Right
         
             start(): void {
-                this.animController = Option.Some(this.getComponent(PlayerAnimController))
+                // this.animController = Option.Some(this.getComponent(PlayerAnimController))
                 this.sprite = Option.Some(this.getComponent(Sprite))
             }
         
@@ -90,17 +104,17 @@ export class PlayerPrefab implements Prefab {
                     this.facing = this.velocity.x > 0 ? PlayerFacing.Right : PlayerFacing.Left
                 }
         
-                ifLet(this.animController, 'Some', controller =>
-                    {
-                        this.updateFacing()
-                        this.updateAnim(controller)
-                    }
-                )
+                // ifLet(this.animController, 'Some', controller =>
+                //     {
+                //         this.updateFacing()
+                //         this.updateAnim(controller)
+                //     }
+                // )
             }
             
-            updateAnim(controller: PlayerAnimController) {
-                controller.setState(this.velocity.x !== 0 ? 'walk' : 'idle')
-            }
+            // updateAnim(controller: PlayerAnimController) {
+            //     controller.setState(this.velocity.x !== 0 ? 'walk' : 'idle')
+            // }
         
             updateFacing() {
                 ifLet(this.sprite, 'Some', sprite =>
@@ -115,6 +129,8 @@ export class PlayerPrefab implements Prefab {
         }
         
         player.addComponent(new PlayerController())
+
+        playerIdleAnim.play()
 
         return player
     }

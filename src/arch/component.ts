@@ -10,8 +10,8 @@ export function constructorOf<T>(inst: T): ConstructorOf<T> {
 
 export interface IComponent {
     start(manager: IComponentManager, node: INode): void
-    update(lvl: Level): void
-    tick?(lvl: Level): void
+    update(dt: number, lvl: Level): void
+    tick?(dt: number, lvl: Level): void
     getNode(): INode
     getComponentManager(): IComponentManager
     getAncestorComponents<T=IComponent>(ctor: ConstructorOf<T>, toAncestor?: INode): T[]
@@ -20,7 +20,8 @@ export interface IComponent {
 
 export interface IComponentManager{
     get<T = IComponent>(ctor: ConstructorOf<T>): T | undefined
-    add(node: INode, ...component: IComponent[]): void
+    add(...component: IComponent[]): void
+    remove(...ctors: ConstructorOf<IComponent>[]): void
     clear(): void
     updateComponents(lvl: Level): void
     tickComponents(lvl: Level): void
@@ -33,6 +34,10 @@ export class ComponentManager implements IComponentManager {
 
     private components = new Map<ConstructorOf<IComponent>, IComponent>()
 
+    constructor(
+        readonly node: INode
+    ) {}
+
     get<T = IComponent>(ctor: ConstructorOf<T>): T | never {
         const target = this.components.get(ctor as ConstructorOf<IComponent>)
         if (!target) {
@@ -42,14 +47,14 @@ export class ComponentManager implements IComponentManager {
         return target as T
     }
 
-    add(node: INode, ...component: IComponent[]): void {
+    add(...component: IComponent[]): void {
         for (const comp of component) {
             //@ts-ignore
             if (!comp[ComponentManager.MANAGER_TAG]) {
                 //@ts-ignore
                 comp[ComponentManager.MANAGER_TAG] = this
                 //@ts-ignore
-                comp[ComponentManager.NODE_TAG] = node
+                comp[ComponentManager.NODE_TAG] = this.node
             }
 
             const ctor = constructorOf(comp)
@@ -63,6 +68,17 @@ export class ComponentManager implements IComponentManager {
         }
     }
 
+    remove(...ctors: ConstructorOf<IComponent>[]): void {
+        for (const ctor of ctors) {
+            const comp = this.components.get(ctor)
+            if (!comp) {
+                continue
+            }
+
+            this.components.delete(ctor)
+        }
+    }
+
     start(node: INode) {
         this.components.forEach(c => c.start(this, node))
     }
@@ -72,17 +88,17 @@ export class ComponentManager implements IComponentManager {
     }
 
     updateComponents(lvl: Level): void {
-        this.components.forEach(c => c.update(lvl))
+        this.components.forEach(c => c.update(lvl.deltaUpdate(), lvl))
     }
 
     tickComponents(lvl: Level): void {
-        this.components.forEach(c => c.tick?.(lvl))
+        this.components.forEach(c => c.tick?.(lvl.deltaTick(), lvl))
     }
 }
 
 export abstract class Component implements IComponent {
     abstract start(): void
-    abstract update(lvl: Level): void
+    abstract update(dt: number, lvl: Level): void
 
     getNode(): INode {
         //@ts-ignore

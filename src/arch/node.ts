@@ -8,13 +8,14 @@ export interface INode {
     readonly parent: INode
     getComponent<T = IComponent>(ctor: ConstructorOf<T>): T | undefined
     addComponent(...component: IComponent[]): IComponent[]
+    removeComponent(...component: ConstructorOf<IComponent>[]): void
 }
 
 export class KNode implements INode {
     constructor(
         readonly id: string,
         readonly parent: INode,
-        readonly componentManager: IComponentManager = new ComponentManager(),
+        readonly componentManager: IComponentManager = new ComponentManager(this),
         readonly childNodes: INode[] = []
     ) {}
 
@@ -23,8 +24,12 @@ export class KNode implements INode {
     }
 
     addComponent<T extends IComponent[]>(...component: T): { [P in keyof T]: T[P] } {
-        this.componentManager.add(this, ...component)
+        this.componentManager.add(...component)
         return component
+    }
+
+    removeComponent(...component: ConstructorOf<IComponent>[]): void {
+        this.componentManager.remove(...component)
     }
 }
 
