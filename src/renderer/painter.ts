@@ -2,10 +2,10 @@ import { IImage } from "../drawables/image.js";
 import { IDrawable } from "../drawables/index.js";
 import { IShape } from "../drawables/shape.js";
 import { IText } from "../drawables/text.js";
-import { Renderer } from "../renderer/renderer.js";
+import { IRenderer } from "../renderer/renderer.js";
 
 export interface IPainter {
-    readonly renderer: Renderer
+    readonly renderer: IRenderer
     paint(draw: IDrawable, transform?: DOMMatrix): void
 }
 
@@ -15,7 +15,7 @@ export interface PainterScheduler {
 
 export class Painter implements IPainter {
     constructor(
-        public renderer:Renderer
+        public renderer: IRenderer
     ){}
 
     paint(drawable: IDrawable, transform=new DOMMatrix()) {

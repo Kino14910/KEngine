@@ -1,5 +1,7 @@
-import { Component, IComponent } from "../../arch/component.js"
+import { Component } from "../../arch/component.js"
+import { Delegate } from "../../arch/delegate.js"
 import { Option } from "../../arch/match.js"
+import { IAnimationCallback } from "./animCallback.js"
 import { IAnimationTrack } from "./animTrack.js"
 
 export interface Frame2D {
@@ -10,6 +12,7 @@ export interface Frame2D {
 }
 
 export interface IAnimation {
+    readonly onCompeleteDelegate: Delegate<[]>
     duration: number
     loop: boolean
     dilation: number
@@ -22,9 +25,11 @@ export interface IAnimation {
     pause(): void
     stop(): void
     isPlaying(): boolean
+    getController(): AnimationControllerComponent
+    update(dt: number): void
 }
 
-export class Animation implements IAnimation {
+export class Animation implements IAnimation, IAnimationCallback {
     private tracks: Map<string, IAnimationTrack> = new Map()
 
     constructor(
@@ -36,6 +41,8 @@ export class Animation implements IAnimation {
 
     private _lastUpdateTime: number = 0
     private _isPlaying: boolean = false
+
+    readonly onCompeleteDelegate: Delegate<[]> = new Delegate()
 
     isPlaying(): boolean {
         return this._isPlaying
@@ -75,16 +82,18 @@ export class Animation implements IAnimation {
     start(): void {}
 
     private updatePlaybackTime() {
+        const lastUpdateTime = this._lastUpdateTime
+        this._lastUpdateTime = Date.now()
         if (this._isPlaying) {
-            this.playbackTime += (Date.now() - this._lastUpdateTime) * this.dilation
-            this._lastUpdateTime = Date.now()
-        }
-        if (this.playbackTime >= this.duration) {
-            if (this.loop) {
-                this.playbackTime = this.playbackTime % this.duration
-            } else {
-                this.playbackTime = this.duration
-                this._isPlaying = false
+            this.playbackTime += (Date.now() - lastUpdateTime) * this.dilation
+            if (this.playbackTime >= this.duration) {
+                if (this.loop) {
+                    this.playbackTime = this.playbackTime % this.duration
+                } else {
+                    this.playbackTime = this.duration
+                    this._isPlaying = false
+                    this.onComplete()
+                }
             }
         }
 
@@ -96,8 +105,79 @@ export class Animation implements IAnimation {
             track.handleTrackUpdate(dt, this.updatePlaybackTime())
         )
     }
+
+    /**
+     * 虚函数， 具体实现在 {@link AnimationControllerComponent.addAnimation} 中
+     */
+    //@ts-ignore
+    getController(): AnimationControllerComponent {}
+
+    onComplete() {
+        this.onCompeleteDelegate.exec()
+    }
 }
 
+export class AnimationControllerComponent extends Component {
+    private readonly animationMapping: Map<string, IAnimation> = new Map()
+
+    start(): void {}
+
+    update(dt: number): void {
+        this.animationMapping.forEach(animation => animation.update(dt))
+    }
+
+    addAnimation(id: string, animation: IAnimation): void {
+        this.animationMapping.set(id, animation)
+        animation.getController = () => this
+    }
+
+    removeAnimation(id: string): void {
+        this.animationMapping.delete(id)
+    }
+
+    getAnimation(id: string): Option<IAnimation> {
+        return Option.Some(this.animationMapping.get(id))
+    }
+
+    getAnimations(): MapIterator<[string, IAnimation]> {
+        return this.animationMapping.entries()
+    }
+
+    playAnimation(
+        id: string,
+        playbackTime: number = 0,
+        loop=true,
+        dilation=1
+    ) {
+        const animation = this.animationMapping.get(id)
+        if (animation) {
+            animation.playbackTime = playbackTime
+            animation.loop = loop
+            animation.dilation = dilation
+            animation.play()
+        }
+
+        return animation
+    }
+
+    playAnimationAndWait(
+        id: string,
+        playbackTime: number = 0,
+        loop=true,
+        dilation=1
+    ): Promise<void> {
+        const anim = this.playAnimation(id, playbackTime, loop, dilation)
+        if (!anim) {
+            return Promise.resolve()
+        }
+
+        const { promise, resolve } = Promise.withResolvers()
+        anim.onCompeleteDelegate.add(resolve as () => void)
+
+        return promise as Promise<void>
+    }
+
+}
 
 // export abstract class Animation2D implements IAnimation {
 //     constructor(

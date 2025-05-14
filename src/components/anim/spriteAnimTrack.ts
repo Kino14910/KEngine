@@ -55,7 +55,10 @@ export class SpriteSheetAnimationTrack extends AnimationTrack {
     private sprite?: Sprite
 
     start(): void {
-        this.sprite = this.getAnimation().getComponent(Sprite)
+        this.sprite = this
+            .getAnimation()
+            .getController()
+            .getComponent(Sprite)
 
         if (!this.sprite) {
             throw new Error('SpriteSheetAnimationTrack requires a Sprite component')
@@ -84,6 +87,8 @@ export class SpriteSheetAnimationTrack extends AnimationTrack {
         res.sy = y
         res.sw = width
         res.sh = height
+
+        console.log('tried')
     }
     
     

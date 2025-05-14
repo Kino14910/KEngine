@@ -1,33 +1,33 @@
-import { RenderScheduler } from "./renderer";
+import { Scheduler } from "./renderer"
 
 interface Factory<Arg extends unknown[], Ret> {
     produce(...args: Arg): Ret
 }
 
-interface RenderSchedulerProduct {
-    scheduler: RenderScheduler
+interface SchedulerProduct {
+    scheduler: Scheduler
     stop: () => void
 }
 
 type SchedulerType = 'rAF' | 'timer'
 
-interface IRenderSchedulerFactory extends Factory<
-    [ SchedulerType, RenderScheduler, number ],
-    RenderSchedulerProduct
+interface ISchedulerFactory extends Factory<
+    [ SchedulerType, Scheduler, number ],
+    SchedulerProduct
 > {}
 
-export class RenderSchedulerFactory implements IRenderSchedulerFactory {
-    produce(type: SchedulerType, tick: RenderScheduler, interval?: number): RenderSchedulerProduct {
+export class SchedulerFactory implements ISchedulerFactory {
+    produce(type: SchedulerType, tickExecutor: Scheduler, interval?: number): SchedulerProduct {
         if(type === 'rAF') {
             let stopped = false
 
-            const scheduler = (execute: () => void) => requestAnimationFrame(()=>{
+            const scheduler = (tick: () => void) => requestAnimationFrame(() => {
                 if (stopped) {
                     return
                 }
 
-                tick(execute)
-                scheduler(execute)
+                tickExecutor(tick)
+                scheduler(tick)
             })
 
             const stop = () => {
@@ -43,7 +43,7 @@ export class RenderSchedulerFactory implements IRenderSchedulerFactory {
             let timer: number
             const scheduler = (execute: () => void ) => {
                 timer = setInterval(() => {
-                    tick(execute)
+                    tickExecutor(execute)
                 }, interval) as unknown as number
             }
             const stop = () => {
@@ -60,4 +60,4 @@ export class RenderSchedulerFactory implements IRenderSchedulerFactory {
     
 }
 
-export const renderSchedulerFactory = new RenderSchedulerFactory()
+export const schedulerFactory = new SchedulerFactory()

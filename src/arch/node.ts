@@ -1,5 +1,5 @@
 import { ComponentManager, ConstructorOf, IComponent, IComponentManager } from "./component.js"
-import { Level } from "./level.js"
+import { IComponentsManager, ILevelRenderer, IWindowManager, Level } from "./level.js"
 
 export interface INode {
     readonly id: string
@@ -48,8 +48,10 @@ export interface INodeManager {
     find(id: string): INode | null
 }
 
+export type InstantiateContext = INodeManager & IWindowManager & ILevelRenderer & IComponentsManager & IPrefabManager
+
 export interface Prefab {
-    instantiate(nodeManager: INodeManager, parent: INode): Promise<INode>
+    instantiate(context: InstantiateContext, parent: INode): Promise<INode>
 }
 
 export class Prefabs {

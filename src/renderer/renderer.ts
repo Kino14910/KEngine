@@ -5,19 +5,15 @@ export interface IRenderer {
     render(cmdFactory: DrawCmdFactory): void
 }
 
-/**
- * renderOnce 是 scheduler 进行一次渲染的调度函数,
- * 每次执行 renderOnce 就进行一次渲染
- */
-export type RenderScheduler = (renderOnce: () => void) => void
+export type Scheduler = (exec: () => void) => void
 
-export class Renderer implements IRenderer {
+export class Renderer2D implements IRenderer {
     private ctx : CanvasRenderingContext2D
 
     constructor (
         canvas: HTMLCanvasElement,
         private receiver: IDrawReceiver,
-        private scheduler: RenderScheduler,
+        private scheduler: Scheduler,
         public pixelArt: boolean = false,
     ){
         this.ctx = canvas.getContext("2d") as CanvasRenderingContext2D

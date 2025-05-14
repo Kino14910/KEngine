@@ -2,21 +2,21 @@ import { IDrawable } from "../drawables/index.js"
 import { Point } from "../drawables/Point.js"
 import { Camera2D } from "../renderer/camera.js"
 import { DrawReceiver } from "../renderer/drawCommand.js"
+import { LocalCamera } from "../renderer/localCamera.js"
 import { IPainter, Painter } from "../renderer/painter.js"
-import { IRenderer, Renderer, RenderScheduler } from "../renderer/renderer.js"
+import { IRenderer, Renderer2D, Scheduler } from "../renderer/renderer.js"
 import { ConstructorOf } from "./component.js"
 import { ClientInput } from "./input.js"
 import { INode, INodeManager, InsertPosition, IPrefabManager, KNode, Prefab, Prefabs } from "./node.js"
 
 export interface IComponentsManager {
-    deltaTick(): number
-    deltaUpdate(): number
+    deltaUpdate: number
     start(): void
-    tick(): void
 }
 
 export interface ILevelRenderer {
-    camera?: Camera2D
+    dilation: number
+    camera: LocalCamera
     renderLevel(tick: () => void): void
     recordRenderInfo(drawable: IDrawable, transform: DOMMatrix, z: number, alpha: number, debug: boolean): void
 }
@@ -24,7 +24,7 @@ export interface ILevelRenderer {
 export interface IWindowManager {
     getRenderer(): IRenderer
     painter?: IPainter
-    createPainter(canvas: HTMLCanvasElement, scheduler: RenderScheduler): IPainter
+    createPainter(canvas: HTMLCanvasElement, scheduler: Scheduler, pixelArt: boolean): IPainter
 }
 
 export interface RenderInfo {
@@ -40,27 +40,26 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer, ICom
 
     public renderer?: IRenderer
     public painter?: IPainter
-    public camera?: Camera2D
+    public camera: LocalCamera = new LocalCamera()
+    public dilation = 1
 
     constructor() {
         ClientInput.registerInput()
     }
 
-    private _lastUpdateTime = 0
-    private _lastTickTime = 0
-
-    deltaTick(): number {
-        const now = Date.now()
-        const delta = now - this._lastTickTime
-        this._lastTickTime = now
-        return delta
+    static createFromPrefab(prefab: ConstructorOf<Prefab>) {
+        const lvl = new Level()
+        lvl.loadPrefab(prefab, lvl.Root)
+        return lvl
     }
 
-    deltaUpdate(): number {
+    private _lastUpdateTime = 0
+    public deltaUpdate = 0
+
+    calcDeltaUpdate() {
         const now = Date.now()
-        const delta = now - this._lastUpdateTime
+        this.deltaUpdate = (now - this._lastUpdateTime) * this.dilation
         this._lastUpdateTime = now
-        return delta
     }
 
     traverse(node: INode, fn: (node: INode, stop: () => void) => void): void {
@@ -126,21 +125,14 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer, ICom
         return this.renderer || (this.renderer = this.painter!.renderer)
     }
 
-    createPainter(canvas: HTMLCanvasElement, scheduler: RenderScheduler, pixelArt=false): IPainter {
+    createPainter(canvas: HTMLCanvasElement, scheduler: Scheduler, pixelArt=false): IPainter {
         const painter = new Painter(
-            new Renderer(
+            new Renderer2D(
                 canvas,
                 new DrawReceiver(),
                 scheduler,
                 pixelArt
             )
-        )
-
-        this.camera = new Camera2D(
-            'defaultCamera',
-            this.Root,
-            canvas.width,
-            canvas.height
         )
 
         return this.painter = painter
@@ -262,16 +254,13 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer, ICom
         ctx.restore()
     }
 
-    tick(): void {
-        this.traverse(this.Root, node => node.componentManager.tickComponents(this))
-    }
-
     renderLevel(renderOnce: () => void): void {
         if (!this.painter) {
             return
         }
 
-        this.traverse(this.Root, node => node.componentManager.updateComponents(this))
+        this.calcDeltaUpdate()
+        this.traverse(this.Root, node => node.componentManager.update(this.deltaUpdate, this))
         let renderInfoList = this.toCameraSpace(this.renderInfoList.splice(0, this.renderInfoList.length))
         renderInfoList = this.culling(renderInfoList)
         renderInfoList.forEach(({ drawable, transform }) => this.painter!.paint(drawable, transform))

@@ -9,13 +9,18 @@ export function constructorOf<T>(inst: T): ConstructorOf<T> {
 }
 
 export interface IComponent {
-    start(manager: IComponentManager, node: INode): void
-    update(dt: number, lvl: Level): void
+    start?(manager: IComponentManager, node: INode): void
+    update?(dt: number, lvl: Level): void
     tick?(dt: number, lvl: Level): void
+    destroy?(): void
     getNode(): INode
     getComponentManager(): IComponentManager
     getAncestorComponents<T=IComponent>(ctor: ConstructorOf<T>, toAncestor?: INode): T[]
     getComponent<T=IComponent>(ctor: ConstructorOf<T>): T | undefined
+}
+
+export interface ITickableComponent {
+    tick(dt: number, lvl: Level): void
 }
 
 export interface IComponentManager{
@@ -23,9 +28,9 @@ export interface IComponentManager{
     add(...component: IComponent[]): void
     remove(...ctors: ConstructorOf<IComponent>[]): void
     clear(): void
-    updateComponents(lvl: Level): void
-    tickComponents(lvl: Level): void
+    update(dt: number, lvl: Level): void
     start(node: INode): void
+    tick(dt: number, lvl: Level): void
 }
 
 export class ComponentManager implements IComponentManager {
@@ -80,25 +85,26 @@ export class ComponentManager implements IComponentManager {
     }
 
     start(node: INode) {
-        this.components.forEach(c => c.start(this, node))
+        this.components.forEach(c => c?.start?.(this, node))
     }
 
     clear(): void {
         this.components.clear()
     }
 
-    updateComponents(lvl: Level): void {
-        this.components.forEach(c => c.update(lvl.deltaUpdate(), lvl))
+    update(dt: number, lvl: Level): void {
+        this.components.forEach(c => c?.update?.(dt, lvl))
     }
 
-    tickComponents(lvl: Level): void {
-        this.components.forEach(c => c.tick?.(lvl.deltaTick(), lvl))
+    tick(dt: number, lvl: Level): void {
+        this.components.forEach(c => c?.tick?.(dt, lvl))
     }
+
 }
 
 export abstract class Component implements IComponent {
-    abstract start(): void
-    abstract update(dt: number, lvl: Level): void
+    start(): void {}
+    update(dt: number, lvl: Level): void {}
 
     getNode(): INode {
         //@ts-ignore

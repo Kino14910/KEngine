@@ -1,8 +1,8 @@
 import { Component } from "../../../arch/component.js"
 import { ClientInput } from "../../../arch/input.js"
 import { ifLet, match, Option } from "../../../arch/match.js"
-import { INode, INodeManager, InsertPosition, KNode, Prefab } from "../../../arch/node.js"
-import { Animation } from "../../../components/anim/animation.js"
+import { INodeManager, InsertPosition, KNode, Prefab } from "../../../arch/node.js"
+import { Animation, AnimationControllerComponent } from "../../../components/anim/animation.js"
 import { SpriteSheetAnimationTrack } from "../../../components/anim/spriteAnimTrack.js"
 import { Sprite } from "../../../components/sprite.js"
 import { DefaultImageDrawable, IImage } from "../../../drawables/image.js"
@@ -38,39 +38,28 @@ export class PlayerPrefab implements Prefab {
                 drawable: playerIdleDImage,
             }),
         )
-        
-        // class PlayerAnimController extends Animation2DController {
-        //     readonly walkLeft = Animation2D.fromUV(playerWalkDImage, 1000, true, 1440, 180, 0, 0, 180, 180, 8)
-        //     readonly idle = Animation2D.fromUV(playerIdleDImage, 1000, true, 1980, 180, 0, 0, 180, 180, 11)
-        
-        //     state(str: string): string {
-        //         return match<string>(str) (
-        //             'walk', state => {
-        //                 this.play(this.walkLeft)
-        //                 return state
-        //             },
-        //             '_', () => {
-        //                 this.play(this.idle)
-        //                 return 'idle'
-        //             },
-        //         )
-        //     }
-        // }
-        
-        const playerIdleAnim = new Animation(10, true)
-        const playerIdleAnimTrack = new SpriteSheetAnimationTrack({
-            spriteResource: playerIdleDImage,
-            originX: 0,
-            originY: 0,
-            width: 1980,
-            height: 180,
-            count: 11,
-            rows: 1,
-            columns: 11,
-        })
 
-        player.addComponent(playerIdleAnim)
-        playerIdleAnim.addTrack(playerIdleAnimTrack)
+        const playerAnimationController = new AnimationControllerComponent()
+
+        playerAnimationController
+            .addAnimation(
+                'idle',
+                new Animation(10, true)
+                    .addTrack(
+                        new SpriteSheetAnimationTrack({
+                            spriteResource: playerIdleDImage,
+                            originX: 0,
+                            originY: 0,
+                            width: 1980,
+                            height: 180,
+                            count: 11,
+                            rows: 1,
+                            columns: 11,
+                        })
+                    )
+            )
+
+        player.addComponent(playerAnimationController)
         
         enum PlayerFacing {
             Right,
@@ -130,7 +119,7 @@ export class PlayerPrefab implements Prefab {
         
         player.addComponent(new PlayerController())
 
-        playerIdleAnim.play()
+        playerAnimationController.playAnimation('idle')
 
         return player
     }

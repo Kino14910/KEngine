@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "tsc -p ./src"
+    "build": "tsc -p ./src",
+    "test": "tsc --watch -p ./src/example/%npm_config_example%"
   },
   "author": "",
   "license": "ISC",
