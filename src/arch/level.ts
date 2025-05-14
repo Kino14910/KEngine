@@ -5,6 +5,7 @@ import { DrawReceiver } from "../renderer/drawCommand.js"
 import { LocalCamera } from "../renderer/localCamera.js"
 import { IPainter, Painter } from "../renderer/painter.js"
 import { IRenderer, Renderer2D, Scheduler } from "../renderer/renderer.js"
+import { Vec3 } from "../stl/3d/index.js"
 import { ConstructorOf } from "./component.js"
 import { ClientInput } from "./input.js"
 import { INode, INodeManager, InsertPosition, IPrefabManager, KNode, Prefab, Prefabs } from "./node.js"
@@ -151,47 +152,47 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer, ICom
 
     private readonly renderInfoList: RenderInfo[] = []
 
-    private culling(renderInfoList: RenderInfo[]): RenderInfo[] {
-        const orderedRenderInfoList = renderInfoList.splice(0, renderInfoList.length)
-            .sort((a, b) => a.z - b.z)
+    // private culling(renderInfoList: RenderInfo[]): RenderInfo[] {
+    //     const orderedRenderInfoList = renderInfoList.splice(0, renderInfoList.length)
+    //         .sort((a, b) => a.z - b.z)
 
-        const { w, h, x, y, z, fov } = this.camera!
-        const ratio = w / h
-        const radFov = fov * Math.PI / 360
-        const getRect = (pz: number) => {
-            const rh = Math.tan(radFov) * (pz - z)
-            const rw = rh * ratio
-            return [
-                x - rw, y - rh,
-                x + rw, y + rh
-            ]
-        }
+    //     const { w, h, x, y, z, fov } = this.camera!
+    //     const ratio = w / h
+    //     const radFov = fov * Math.PI / 360
+    //     const getRect = (pz: number) => {
+    //         const rh = Math.tan(radFov) * (pz - z)
+    //         const rw = rh * ratio
+    //         return [
+    //             x - rw, y - rh,
+    //             x + rw, y + rh
+    //         ]
+    //     }
 
-        return orderedRenderInfoList.filter(({ drawable, z, transform }: RenderInfo) => {
-            if (drawable.type === 'text') {
-                return true
-            }
+    //     return orderedRenderInfoList.filter(({ drawable, z, transform }: RenderInfo) => {
+    //         if (drawable.type === 'text') {
+    //             return true
+    //         }
 
-            const {e, f} = transform
-            let rect1, rect2 = getRect(z)
-            if (drawable.type === 'image') {
-                const { x: _x, y: _y, w, h } = drawable
-                const x = _x + e
-                const y = _y + f
-                rect1 = [
-                    x, y, x + w, y + h
-                ]
-            } else {
-                rect1 = this.getPathRect(drawable.points, [e, f])
-            }
+    //         const {e, f} = transform
+    //         let rect1, rect2 = getRect(z)
+    //         if (drawable.type === 'image') {
+    //             const { x: _x, y: _y, w, h } = drawable
+    //             const x = _x + e
+    //             const y = _y + f
+    //             rect1 = [
+    //                 x, y, x + w, y + h
+    //             ]
+    //         } else {
+    //             rect1 = this.getPathRect(drawable.points, [e, f])
+    //         }
 
-            return this.intersected(
-                //@ts-ignore
-                ...rect1,
-                ...rect2
-            )
-        })
-    }
+    //         return this.intersected(
+    //             //@ts-ignore
+    //             ...rect1,
+    //             ...rect2
+    //         )
+    //     })
+    // }
 
     private getPathRect(points: Point[], offset: Point) {
         const p1 = points[0]
@@ -218,10 +219,7 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer, ICom
     }
 
     cameraSpace(): DOMMatrix {
-        return this.camera!.originToCenter()
-            .multiply(
-                this.camera!.lookAt()
-            )
+        return this.camera.lookAt(this.camera.location, Vec3.from(0, -1, 0))
     }
 
     toCameraSpace(renderInfo: RenderInfo[]): RenderInfo[] {
