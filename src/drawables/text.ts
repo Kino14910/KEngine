@@ -1,8 +1,8 @@
-import { Point } from "./Point.js"
+import { Vec2, Vector2 } from "../stl/vec2.js"
 export interface IText {
     readonly type: 'text'
     content: string
-    position: Point
+    position: Vector2
     fontSize: number
     maxWidth: number
     fillStyle: string
@@ -12,7 +12,7 @@ export interface IText {
 export class DefaultTextDrawable implements IText {
     readonly type = "text"
     constructor(
-        public position: Point = [50, 90],
+        public position: Vector2 = Vec2.from(50, 90),
         public content: string = 'Hello world',
         public fontSize: number = 24,
         public maxWidth: number = 100,

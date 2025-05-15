@@ -1,4 +1,3 @@
-import { Point } from "../drawables/Point.js"
 import { Vec2, Vector2 } from "../stl/vec2.js"
 
 export class ClientInput {
@@ -6,7 +5,7 @@ export class ClientInput {
     static buttonsPressing: number = 0
     static axis: Vector2 = Vec2.zero()
     static customInputs: Map<string, any> = new Map()
-    static mousePosition: Point = [0, 0]
+    static mousePosition: Vector2 = Vec2.zero()
 
     private static isRegistered = false
     
@@ -38,8 +37,8 @@ export class ClientInput {
             window.addEventListener('mousedown', e => this.buttonsPressing = e.buttons)
             window.addEventListener('mouseup', e => this.buttonsPressing = e.buttons)
             window.addEventListener('mousemove', e => {
-                this.mousePosition[0] = e.screenX
-                this.mousePosition[1] = e.screenY
+                this.mousePosition.x = e.screenX
+                this.mousePosition.y = e.screenY
             })
             this.isRegistered = true
         }

@@ -1,12 +1,12 @@
 import { DefaultDrawable } from "./shape.js";
-import { Point } from "./Point.js";
+import { Vec2, Vector2 } from "../stl/vec2.js";
 export class RoundedRectangle extends DefaultDrawable{
     static create(
         x:number, y:number,
         w:number, h:number,
         r1:number, r2:number, r3:number, r4:number
     ) {
-        let points: Point[] = []
+        let points: Vector2[] = []
         if(r1+r2 > w || r1+r3 > h || r2+r4 > h || r3+r4 > w) {
             throw Error('invalid radius')
         }
@@ -27,12 +27,12 @@ export class RoundedRectangle extends DefaultDrawable{
     ){
         const species = Math.floor(1/4 * Math.PI * r)
         let dTheta = Math.PI * angle/180 / species 
-        let tempPoints: Point[] = []
+        let tempPoints: Vector2[] = []
         for(let i = 0; i <= species; i++) {
             let theta = startAngle * Math.PI / 180 + i * dTheta
             let x1 = x + r * Math.cos(theta)
             let y1 = y + r * Math.sin(theta)
-            tempPoints.push([x1, y1])
+            tempPoints.push(Vec2.from(x1, y1))
         }
         return tempPoints
     }
