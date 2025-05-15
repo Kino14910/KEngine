@@ -1,8 +1,8 @@
-import { IDrawable } from '../drawables/index.js'
+import { IDrawable2D } from '../drawables/index.js'
 import { Component } from '../arch/component.js'
 import { Level } from '../arch/level.js'
 
-export interface ISprite<T extends IDrawable = IDrawable> {
+export interface ISprite<T = IDrawable2D> {
     readonly drawable: T
     readonly anchor: [ number, number ]
     readonly transform: DOMMatrix
@@ -11,12 +11,12 @@ export interface ISprite<T extends IDrawable = IDrawable> {
     debug: boolean
 }
 
-export class Sprite<T extends IDrawable = IDrawable> extends Component implements ISprite {
+export class Sprite extends Component implements ISprite {
 
-    static create<T extends IDrawable = IDrawable>({
+    static create({
         drawable, anchor, transform, z, alpha, debug
-    }: Partial<Omit<ISprite, 'drawable'>> & Pick<ISprite, 'drawable'>): Sprite<T> {
-        return new Sprite<T>(
+    }: Partial<Omit<ISprite, 'drawable'>> & Pick<ISprite, 'drawable'>): Sprite {
+        return new Sprite(
             //@ts-ignore
             drawable,
             transform ?? new DOMMatrix(),
@@ -28,7 +28,7 @@ export class Sprite<T extends IDrawable = IDrawable> extends Component implement
     }
 
     constructor(
-        public drawable: T,
+        public drawable: IDrawable2D,
         public transform: DOMMatrix = new DOMMatrix(),
         public anchor: [number, number] = [0.5, 0.5],
         public z = 0,
@@ -40,18 +40,13 @@ export class Sprite<T extends IDrawable = IDrawable> extends Component implement
 
     start(): void {}
 
-    update(_: number, lvl: Level): void {
-        lvl.recordRenderInfo(
-            this.drawable,
-            this.getAncestorComponents(Sprite)
-                .flat()
-                .reduce((pre, cur) => {
-                    return pre.multiply(cur.transform)
-                }, this.transform.translate(...this.getAnchoredTranslate())),
-            this.z,
-            this.alpha,
-            this.debug,
-        )
+    getWorldTransform() {
+        return this.getAncestorComponents(Sprite)
+            .flat()
+            .reduce(
+                (pre, cur) => pre.multiply(cur.transform),
+                this.transform.translate(...this.getAnchoredTranslate())
+            )
     }
 
     getAnchoredTranslate() {

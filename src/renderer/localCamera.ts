@@ -1,21 +1,31 @@
-import { Matrix, Vec3 } from "../stl/3d/index.js"
+import { Level } from "../arch/level.js"
+import { Vec3 } from "../stl/3d/index.js"
+import { CameraComponent, CameraDirection, ICamera, ICameraComponent } from "./camera.js"
 
-export interface LocalCameraDirection {
-    up: Vec3
-    right: Vec3
-    lookAt: Vec3
+export interface LocalCamera extends ICamera {
+    attachToComponent(cam: ICameraComponent): void
+    getCameraComponent(): ICameraComponent
+    renderLevel(level: Level): void
 }
 
-export class LocalCamera {
-    location: Vec3 = Vec3.from(0, 0, 0)
-    direction: LocalCameraDirection = {
-        up: Vec3.from(0, 1, 0),
-        right: Vec3.from(1, 0, 0),
-        lookAt: Vec3.from(0, 0, -1),
+export class LocalCamera3D implements LocalCamera {
+    static readonly defaultCameraComponent: ICameraComponent = new CameraComponent()
+
+    constructor(
+        public location: Vec3 = Vec3.from(0, 0, 0),
+        public direction: CameraDirection = {
+            up: Vec3.from(0, 1, 0),
+            right: Vec3.from(1, 0, 0),
+            lookAt: Vec3.from(0, 0, -1),
+        },
+        public fov: number = 90,
+        public near: number = -0.5,
+        public far: number = 100,
+    ) {
+        this.attachToComponent(LocalCamera3D.defaultCameraComponent)
     }
-    fov: number = 90
-    near: number = 0.1
-    far: number = 1000
+
+    private attachedComponent?: ICameraComponent
 
     rotateUp(angle: number) {
         this.direction.up
@@ -51,5 +61,17 @@ export class LocalCamera {
             lookAt.x, lookAt.y, lookAt.z, -Vec3.dot(lookAt, this.location),
             0, 0, 0, 1
         ])
+    }
+
+    attachToComponent(cam: ICameraComponent): void {
+        this.attachedComponent = cam
+    }
+
+    getCameraComponent(): ICameraComponent {
+        return this.attachedComponent ?? LocalCamera3D.defaultCameraComponent
+    }
+
+    renderLevel(level: Level): void {
+        
     }
 }

@@ -6,20 +6,24 @@ export interface INode {
     readonly componentManager: IComponentManager
     readonly childNodes: INode[]
     readonly parent: INode
-    getComponent<T = IComponent>(ctor: ConstructorOf<T>): T | undefined
+    getComponent<T extends IComponent = IComponent>(ctor: ConstructorOf<T>): T | undefined
     addComponent(...component: IComponent[]): IComponent[]
     removeComponent(...component: ConstructorOf<IComponent>[]): void
 }
 
 export class KNode implements INode {
+    readonly componentManager: IComponentManager
+
     constructor(
         readonly id: string,
         readonly parent: INode,
-        readonly componentManager: IComponentManager = new ComponentManager(this),
+        componentManager?: IComponentManager,
         readonly childNodes: INode[] = []
-    ) {}
+    ) {
+        this.componentManager = componentManager ?? new ComponentManager(this)
+    }
 
-    getComponent<T = IComponent>(ctor: ConstructorOf<T>): T | undefined {
+    getComponent<T extends IComponent = IComponent>(ctor: ConstructorOf<T>): T | undefined {
         return this.componentManager.get(ctor)
     }
 
@@ -55,18 +59,21 @@ export interface Prefab {
 }
 
 export class Prefabs {
-    static prefabs = new Map<ConstructorOf<Prefab>, Prefab>()
-    static async instantiate(lvl: Level, parent: INode, prefab: ConstructorOf<Prefab>) {
+    static readonly prefabs = new Map<ConstructorOf<Prefab>, Prefab>()
+
+    static instantiate(lvl: Level, parent: INode, prefab: ConstructorOf<Prefab>): Promise<INode> | undefined {
         let prefabInstance = Prefabs.prefabs.get(prefab)
         if (!prefabInstance) {
             prefabInstance = Reflect.construct(prefab, [])
-            Prefabs.prefabs.set(prefab, prefabInstance)
+            if (prefabInstance) {
+                Prefabs.prefabs.set(prefab, prefabInstance)
+            }
         }
 
-        return prefabInstance.instantiate(lvl, parent)
+        return prefabInstance?.instantiate?.(lvl, parent)
     }
 }
 
 export interface IPrefabManager {
-    loadPrefab(prefab: ConstructorOf<Prefab>, parent?: INode): Promise<INode>
+    loadPrefab(prefab: ConstructorOf<Prefab>, parent?: INode): Promise<INode> | undefined
 }

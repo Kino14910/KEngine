@@ -1,74 +1,54 @@
-import { Component, IComponent } from "../arch/component.js"
-import { Level } from "../arch/level.js"
-import { INode, KNode } from "../arch/node.js"
-import { ISprite } from "../components/sprite.js"
+import { Component, ConstructorOf, IComponent } from "../arch/component.js"
+import { Vec3 } from "../stl/3d/index.js"
 
-export interface ICamera extends IComponent {
-    location: [number, number, number]
-    rotation: [number, number, number]
+export interface CameraDirection {
+    up: Vec3
+    right: Vec3
+    lookAt: Vec3
+}
+
+export interface ICamera {
+    location: Vec3
+    direction: CameraDirection
     fov: number
     near: number
     far: number
 }
 
-export class Camera2D extends Component implements ICamera {
-    location: [number, number, number] = [0, 0, 0]
-    rotation: [number, number, number] = [0, 0, 0]
-    fov: number = 90
-    near: number = -0.5
-    far: number = 1
+export interface ICameraComponent extends ICamera, IComponent {}
 
-    tick?(dt: number, lvl: Level): void {
-        throw new Error("Method not implemented.")
+export class CameraComponent extends Component implements ICamera {
+    static readonly globalCameras = new Map<string, CameraComponent>()
+
+    constructor(
+        public location: Vec3 = Vec3.from(0, 0, 0),
+        public direction: CameraDirection = {
+            up: Vec3.from(0, 1, 0),
+            right: Vec3.from(1, 0, 0),
+            lookAt: Vec3.from(0, 0, -1),
+        },
+        public fov: number = 90,
+        public near: number = -0.5,
+        public far: number = 1,
+    ) {
+        super()
     }
 
-    destroy?(): void {
-        throw new Error("Method not implemented.")
+    static registerCamera(name: string, cam: CameraComponent) {
+        CameraComponent.globalCameras.set(name, cam)
     }
 
+    static getCamera(name: string) {
+        return CameraComponent.globalCameras.get(name)
+    }
+
+    static unregisterCamera(name: string) {
+        CameraComponent.globalCameras.delete(name)
+    }
+
+    static createCameraComponent(name: string, camClass: ConstructorOf<CameraComponent> = CameraComponent) {
+        const cam = Reflect.construct(camClass, [])
+        CameraComponent.registerCamera(name, cam)
+        return cam
+    }
 }
-
-// export class Camera2D extends KNode {
-//     x: number = 0
-//     y: number = 0
-//     z: number = -1
-//     rotZ: number = 0
-//     fov = 60
-//     near = -0.5
-//     far = 1
-
-//     private tw: number
-//     private th: number
-
-//     constructor(
-//         id: string,
-//         parent: INode,
-//         public w: number,
-//         public h: number,
-//     ) {
-//         super(id, parent)
-//         this.tw = w / 2
-//         this.th = h / 2
-//     }
-
-//     private bindTo?: ISprite
-
-//     lookAt() {
-//         if (this.bindTo) {
-//             return this.bindTo.transform.inverse()
-//         }
-
-//         return new DOMMatrix()
-//             .translateSelf(-this.x, -this.y, -this.z)
-//             .rotateAxisAngleSelf(0, 0, 1, -this.rotZ)
-//     }
-
-//     bindCameraTo(sprite: ISprite) {
-//         this.bindTo = sprite
-//     }
-
-//     originToCenter() {
-//         return new DOMMatrix()
-//             .translateSelf(this.tw, this.th)
-//     }
-// }

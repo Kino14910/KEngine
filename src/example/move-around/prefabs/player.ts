@@ -34,7 +34,7 @@ export class PlayerPrefab implements Prefab {
         )
         
         player.addComponent(
-            Sprite.create<IImage>({
+            Sprite.create({
                 drawable: playerIdleDImage,
             }),
         )

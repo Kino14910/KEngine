@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc -p ./src",
+    "build": "tsc",
     "test": "tsc --watch -p ./src/example/%npm_config_example%"
   },
   "author": "",

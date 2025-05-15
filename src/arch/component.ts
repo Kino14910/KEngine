@@ -15,8 +15,8 @@ export interface IComponent {
     destroy?(): void
     getNode(): INode
     getComponentManager(): IComponentManager
-    getAncestorComponents<T=IComponent>(ctor: ConstructorOf<T>, toAncestor?: INode): T[]
-    getComponent<T=IComponent>(ctor: ConstructorOf<T>): T | undefined
+    getAncestorComponents<T extends IComponent = IComponent>(ctor: ConstructorOf<T>, toAncestor?: INode): T[]
+    getComponent<T extends IComponent = IComponent>(ctor: ConstructorOf<T>): T | undefined
 }
 
 export interface ITickableComponent {
@@ -24,7 +24,7 @@ export interface ITickableComponent {
 }
 
 export interface IComponentManager{
-    get<T = IComponent>(ctor: ConstructorOf<T>): T | undefined
+    get<T extends IComponent = IComponent>(ctor: ConstructorOf<T>): T | undefined
     add(...component: IComponent[]): void
     remove(...ctors: ConstructorOf<IComponent>[]): void
     clear(): void
@@ -43,8 +43,8 @@ export class ComponentManager implements IComponentManager {
         readonly node: INode
     ) {}
 
-    get<T = IComponent>(ctor: ConstructorOf<T>): T | never {
-        const target = this.components.get(ctor as ConstructorOf<IComponent>)
+    get<T extends IComponent = IComponent>(ctor: ConstructorOf<T>): T | never {
+        const target = this.components.get(ctor)
         if (!target) {
             throw Error(`Unkown component named ${ctor.name}`)
         }
@@ -116,7 +116,7 @@ export abstract class Component implements IComponent {
         return this[ComponentManager.MANAGER_TAG]
     }
 
-    getAncestorComponents<T=IComponent>(ctor: ConstructorOf<T>, toAncestor?: INode): T[] {
+    getAncestorComponents<T extends IComponent = IComponent>(ctor: ConstructorOf<T>, toAncestor?: INode): T[] {
         const result: T[] = []
         let self = this.getNode().parent
 
@@ -135,7 +135,7 @@ export abstract class Component implements IComponent {
         return result
     }
 
-    getComponent<T = IComponent>(ctor: ConstructorOf<T>): T | undefined {
+    getComponent<T extends IComponent = IComponent>(ctor: ConstructorOf<T>): T | undefined {
         return this.getComponentManager().get(ctor)
     }
 }

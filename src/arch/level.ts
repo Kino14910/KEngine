@@ -1,8 +1,8 @@
-import { IDrawable } from "../drawables/index.js"
+import { IDrawable2D } from "../drawables/index.js"
 import { Point } from "../drawables/Point.js"
-import { Camera2D } from "../renderer/camera.js"
+import { CameraComponent } from "../renderer/camera.js"
 import { DrawReceiver } from "../renderer/drawCommand.js"
-import { LocalCamera } from "../renderer/localCamera.js"
+import { LocalCamera, LocalCamera3D } from "../renderer/localCamera.js"
 import { IPainter, Painter } from "../renderer/painter.js"
 import { IRenderer, Renderer2D, Scheduler } from "../renderer/renderer.js"
 import { Vec3 } from "../stl/3d/index.js"
@@ -18,18 +18,17 @@ export interface IComponentsManager {
 export interface ILevelRenderer {
     dilation: number
     camera: LocalCamera
-    renderLevel(tick: () => void): void
-    recordRenderInfo(drawable: IDrawable, transform: DOMMatrix, z: number, alpha: number, debug: boolean): void
+    renderLevel(renderOnce: () => void): void
 }
 
 export interface IWindowManager {
     getRenderer(): IRenderer
-    painter?: IPainter
-    createPainter(canvas: HTMLCanvasElement, scheduler: Scheduler, pixelArt: boolean): IPainter
+    painter?: IPainter<unknown>
+    createPainter(canvas: HTMLCanvasElement, scheduler: Scheduler, pixelArt: boolean): IPainter<unknown>
 }
 
 export interface RenderInfo {
-    drawable: IDrawable
+    drawable: IDrawable2D
     transform: DOMMatrix
     z: number
     alpha: number
@@ -40,8 +39,8 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer, ICom
     readonly Root: INode = new KNode('root', null as any)
 
     public renderer?: IRenderer
-    public painter?: IPainter
-    public camera: LocalCamera = new LocalCamera()
+    public painter?: IPainter<unknown>
+    public camera: LocalCamera = new LocalCamera3D()
     public dilation = 1
 
     constructor() {
@@ -126,7 +125,7 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer, ICom
         return this.renderer || (this.renderer = this.painter!.renderer)
     }
 
-    createPainter(canvas: HTMLCanvasElement, scheduler: Scheduler, pixelArt=false): IPainter {
+    createPainter(canvas: HTMLCanvasElement, scheduler: Scheduler, pixelArt=false): IPainter<unknown> {
         const painter = new Painter(
             new Renderer2D(
                 canvas,
@@ -139,119 +138,6 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer, ICom
         return this.painter = painter
     }
 
-    recordRenderInfo(
-        drawable: IDrawable, transform: DOMMatrix,
-        z: number, alpha: number, debug: boolean
-    ) {
-        if (z < this.camera!.near || z > this.camera!.far) {
-            return
-        }
-
-        this.renderInfoList.push({ drawable, transform, z, alpha, debug })
-    }
-
-    private readonly renderInfoList: RenderInfo[] = []
-
-    // private culling(renderInfoList: RenderInfo[]): RenderInfo[] {
-    //     const orderedRenderInfoList = renderInfoList.splice(0, renderInfoList.length)
-    //         .sort((a, b) => a.z - b.z)
-
-    //     const { w, h, x, y, z, fov } = this.camera!
-    //     const ratio = w / h
-    //     const radFov = fov * Math.PI / 360
-    //     const getRect = (pz: number) => {
-    //         const rh = Math.tan(radFov) * (pz - z)
-    //         const rw = rh * ratio
-    //         return [
-    //             x - rw, y - rh,
-    //             x + rw, y + rh
-    //         ]
-    //     }
-
-    //     return orderedRenderInfoList.filter(({ drawable, z, transform }: RenderInfo) => {
-    //         if (drawable.type === 'text') {
-    //             return true
-    //         }
-
-    //         const {e, f} = transform
-    //         let rect1, rect2 = getRect(z)
-    //         if (drawable.type === 'image') {
-    //             const { x: _x, y: _y, w, h } = drawable
-    //             const x = _x + e
-    //             const y = _y + f
-    //             rect1 = [
-    //                 x, y, x + w, y + h
-    //             ]
-    //         } else {
-    //             rect1 = this.getPathRect(drawable.points, [e, f])
-    //         }
-
-    //         return this.intersected(
-    //             //@ts-ignore
-    //             ...rect1,
-    //             ...rect2
-    //         )
-    //     })
-    // }
-
-    private getPathRect(points: Point[], offset: Point) {
-        const p1 = points[0]
-        let l = p1[0], t = p1[1], r = p1[0], b = p1[1]
-        points.slice(1).forEach(p => {
-            l = Math.min(l, p[0])
-            t = Math.min(t, p[1])
-            r = Math.max(l, p[0])
-            b = Math.max(t, p[1])
-        })
-
-        const [e, f] = offset
-
-        return [
-            l + e, t + f, r + e, b + f
-        ]
-    }
-
-    private intersected(
-        x1: number, y1: number, x2: number, y2: number,
-        x3: number, y3: number, x4: number, y4: number
-    ) {
-        return x2 <= x3 || x1 >= x4 || y1 <= y3 || y2 >= y4
-    }
-
-    cameraSpace(): DOMMatrix {
-        return this.camera.lookAt(this.camera.location, Vec3.from(0, -1, 0))
-    }
-
-    toCameraSpace(renderInfo: RenderInfo[]): RenderInfo[] {
-        const cam = this.cameraSpace()
-        renderInfo.forEach(info => {
-            info.transform = cam.multiply(info.transform)
-        })
-        return renderInfo
-    }
-
-    renderCoordinate(renderInfo: RenderInfo[], ctx: CanvasRenderingContext2D) {
-        ctx.save()
-        for (const {transform, debug} of renderInfo) {
-            if(!debug)
-                continue
-            ctx.setTransform(transform)
-            ctx.beginPath()
-            ctx.lineTo(10, 0)
-            ctx.closePath()
-            ctx.strokeStyle = 'red'
-            ctx.stroke()
-
-            ctx.beginPath()
-            ctx.lineTo(0, 10)
-            ctx.closePath()
-            ctx.strokeStyle = 'blue'
-            ctx.stroke()
-            ctx.resetTransform()
-        }
-        ctx.restore()
-    }
-
     renderLevel(renderOnce: () => void): void {
         if (!this.painter) {
             return
@@ -259,9 +145,7 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer, ICom
 
         this.calcDeltaUpdate()
         this.traverse(this.Root, node => node.componentManager.update(this.deltaUpdate, this))
-        let renderInfoList = this.toCameraSpace(this.renderInfoList.splice(0, this.renderInfoList.length))
-        renderInfoList = this.culling(renderInfoList)
-        renderInfoList.forEach(({ drawable, transform }) => this.painter!.paint(drawable, transform))
+        this.camera.renderLevel(this)
 
         renderOnce()
     }
@@ -270,7 +154,7 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer, ICom
         this.traverse(this.Root, node => node.componentManager.start(node))
     }
 
-    async loadPrefab(prefab: ConstructorOf<Prefab>, parent: INode = this.Root): Promise<INode> {
+    loadPrefab(prefab: ConstructorOf<Prefab>, parent: INode = this.Root): Promise<INode> | undefined {
         return Prefabs.instantiate(this, parent, prefab)
     }
 }
