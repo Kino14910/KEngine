@@ -1,9 +1,9 @@
 import { Component } from "../../../arch/component.js"
 import { ClientInput } from "../../../arch/input.js"
 import { ifLet, match, Option } from "../../../arch/match.js"
-import { INodeManager, InsertPosition, KNode, Prefab } from "../../../arch/node.js"
+import { INode, INodeManager, InsertPosition, InstantiateContext, KNode, Prefab } from "../../../arch/node.js"
 import { Animation, AnimationControllerComponent } from "../../../components/anim/animation.js"
-import { SpriteSheetAnimationTrack } from "../../../components/anim/spriteAnimTrack.js"
+import { SpriteSheetAnimationTrack } from "../../../components/anim/2d/spriteSheetTrack.js"
 import { Sprite } from "../../../components/sprite.js"
 import { DefaultImageDrawable, IImage } from "../../../drawables/image.js"
 import { res } from "../../../resource/imageBitmap.js"
@@ -43,8 +43,7 @@ export class PlayerPrefab implements Prefab {
 
         playerAnimationController
             .addAnimation(
-                'idle',
-                new Animation(10, true)
+                new Animation('idle', 1100, true)
                     .addTrack(
                         new SpriteSheetAnimationTrack({
                             spriteResource: playerIdleDImage,
@@ -56,7 +55,22 @@ export class PlayerPrefab implements Prefab {
                             rows: 1,
                             columns: 11,
                         })
-                    )
+                    ),
+            )
+            .addAnimation(
+                new Animation('walk', 800, true)
+                    .addTrack(
+                        new SpriteSheetAnimationTrack({
+                            spriteResource: playerWalkDImage,
+                            originX: 0,
+                            originY: 0,
+                            width: 1440,
+                            height: 180,
+                            count: 8,
+                            rows: 1,
+                            columns: 8,
+                        })
+                    ),
             )
 
         player.addComponent(playerAnimationController)
@@ -76,6 +90,8 @@ export class PlayerPrefab implements Prefab {
                 // this.animController = Option.Some(this.getComponent(PlayerAnimController))
                 this.sprite = Option.Some(this.getComponent(Sprite))
             }
+
+            running = false
         
             update(): void {
                 this.velocity.x = 0
@@ -92,35 +108,34 @@ export class PlayerPrefab implements Prefab {
                 if (this.velocity.x) {
                     this.facing = this.velocity.x > 0 ? PlayerFacing.Right : PlayerFacing.Left
                 }
-        
-                // ifLet(this.animController, 'Some', controller =>
-                //     {
-                //         this.updateFacing()
-                //         this.updateAnim(controller)
-                //     }
-                // )
+
+                // this.updateFacing()
+
+                if (this.running && this.velocity.x === 0) {
+                    playerAnimationController.playAnimation('idle')
+                    this.running = false
+                } else if (!this.running && this.velocity.x !== 0) {
+                    playerAnimationController.playAnimation('walk')
+                    this.running = true
+                }
             }
-            
-            // updateAnim(controller: PlayerAnimController) {
-            //     controller.setState(this.velocity.x !== 0 ? 'walk' : 'idle')
-            // }
         
             updateFacing() {
                 ifLet(this.sprite, 'Some', sprite =>
-                    {
-                        match(this.facing) (
-                            PlayerFacing.Right, _ => sprite.transform.m11 = 1,
-                            PlayerFacing.Left, _ => sprite.transform.m11 = -1,
-                        )
-                    }
+                    match<number>(this.facing) (
+                        PlayerFacing.Right, _ => sprite.transform.m11 = 1,
+                        PlayerFacing.Left, _ => sprite.transform.m11 = 0.7,
+                    )
                 )
             }
         }
         
         player.addComponent(new PlayerController())
 
-        playerAnimationController.playAnimation('idle')
-
         return player
+    }
+
+    destroy(context: InstantiateContext, parent: INode): void {
+        context.removeChildren(parent)
     }
 }

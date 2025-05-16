@@ -11,7 +11,7 @@ export abstract class Res<T> implements Resource<T> {
     abstract read(): Promise<T>
     abstract release(): Promise<void> | void
     static from<S, D>(source: S, transformer: ITransfromer<S, D>): Promise<D> {
-        return transformer.transform(source)
+        return transformer(source)
     }
 }
 
@@ -25,6 +25,6 @@ export abstract class ResMut<F, T> implements ResourceMutable<F, T> {
     abstract read(): Promise<T>
     abstract release(): void
     static from<S, D>(source: S, transformer: ITransfromer<S, D>): Promise<D> {
-        return transformer.transform(source)
+        return transformer(source)
     }
 }

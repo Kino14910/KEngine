@@ -7,6 +7,10 @@ export interface Vector3 {
 //@ts-ignore
 export class Vec3 extends Float64Array implements Vector3 {
 
+    static fromDomPoint(point: DOMPoint) {
+        return new Vec3([point.x, point.y, point.z])
+    }
+
     get x() {
         return this[0]
     }

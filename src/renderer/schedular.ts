@@ -4,12 +4,12 @@ interface Factory<Arg extends unknown[], Ret> {
     produce(...args: Arg): Ret
 }
 
-interface SchedulerProduct {
+export interface SchedulerProduct {
     scheduler: Scheduler
     stop: () => void
 }
 
-type SchedulerType = 'rAF' | 'timer'
+type SchedulerType = 'rAF' | 'fixed'
 
 interface ISchedulerFactory extends Factory<
     [ SchedulerType, Scheduler, number ],
@@ -39,7 +39,7 @@ export class SchedulerFactory implements ISchedulerFactory {
             }
         }
 
-        if(type === 'timer') {
+        if(type === 'fixed') {
             let timer: number
             const scheduler = (execute: () => void ) => {
                 timer = setInterval(() => {

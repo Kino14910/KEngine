@@ -1,4 +1,4 @@
-import { fetchBlobTransformer } from "./fetchBlob.js"
+import { fetchBlobTransformer } from "./transformers.js"
 import { ResMut } from "./res.js"
 
 export class ImageBitmapResource extends ResMut<string, ImageBitmap> {
@@ -29,7 +29,7 @@ export class ImageBitmapResource extends ResMut<string, ImageBitmap> {
     }
 
     update(value: string): void {
-        this.imageBitmap = fetchBlobTransformer.transform(value)
+        this.imageBitmap = fetchBlobTransformer(value)
             .then(e => createImageBitmap(e))
             .then(bitmap => this.cached = bitmap)
     }

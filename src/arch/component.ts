@@ -10,8 +10,8 @@ export function constructorOf<T>(inst: T): ConstructorOf<T> {
 
 export interface IComponent {
     start?(manager: IComponentManager, node: INode): void
-    update?(dt: number, lvl: Level): void
-    tick?(dt: number, lvl: Level): void
+    update?(dt: number): void
+    tick?(dt: number): void
     destroy?(): void
     getNode(): INode
     getComponentManager(): IComponentManager
@@ -92,19 +92,19 @@ export class ComponentManager implements IComponentManager {
         this.components.clear()
     }
 
-    update(dt: number, lvl: Level): void {
-        this.components.forEach(c => c?.update?.(dt, lvl))
+    update(dt: number): void {
+        this.components.forEach(c => c?.update?.(dt))
     }
 
-    tick(dt: number, lvl: Level): void {
-        this.components.forEach(c => c?.tick?.(dt, lvl))
+    tick(dt: number): void {
+        this.components.forEach(c => c?.tick?.(dt))
     }
 
 }
 
 export abstract class Component implements IComponent {
     start(): void {}
-    update(dt: number, lvl: Level): void {}
+    update(dt: number): void {}
 
     getNode(): INode {
         //@ts-ignore
@@ -116,7 +116,7 @@ export abstract class Component implements IComponent {
         return this[ComponentManager.MANAGER_TAG]
     }
 
-    getAncestorComponents<T extends IComponent = IComponent>(ctor: ConstructorOf<T>, toAncestor?: INode): T[] {
+    getAncestorComponents<T extends IComponent>(ctor: ConstructorOf<T>, toAncestor?: INode): T[] {
         const result: T[] = []
         let self = this.getNode().parent
 
@@ -135,7 +135,7 @@ export abstract class Component implements IComponent {
         return result
     }
 
-    getComponent<T extends IComponent = IComponent>(ctor: ConstructorOf<T>): T | undefined {
+    getComponent<T extends IComponent>(ctor: ConstructorOf<T>): T | undefined {
         return this.getComponentManager().get(ctor)
     }
 }

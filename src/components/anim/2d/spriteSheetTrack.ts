@@ -1,6 +1,6 @@
-import { IImage } from "../../drawables/image.js"
-import { Sprite } from "../sprite.js"
-import { AnimationTrack } from "./animTrack.js"
+import { IImage } from "../../../drawables/image.js"
+import { Sprite } from "../../sprite.js"
+import { AnimationTrack } from "../animTrack.js"
 
 export interface ISpriteSheet {
     spriteResource: IImage
@@ -87,8 +87,6 @@ export class SpriteSheetAnimationTrack extends AnimationTrack {
         res.sy = y
         res.sw = width
         res.sh = height
-
-        console.log('tried')
     }
     
     

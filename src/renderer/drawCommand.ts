@@ -4,8 +4,8 @@ export interface DrawCommand {
     (): void
 }
 
-export interface DrawCmdFactory {
-    (ctx: CanvasRenderingContext2D): DrawCommand
+export interface DrawCmdFactory<Ctx> {
+    (ctx: Ctx): DrawCommand
 }
 
 export interface IDrawReceiver {
@@ -18,8 +18,8 @@ export class DrawReceiver implements IDrawReceiver {
     execute(): void {
         for (const cmd of this.cmds) {
             cmd()
+            this.cmds.remove(cmd)
         }
-        this.cmds.clear()
     }
     receive(cmd: DrawCommand): void {
         this.cmds.append(cmd)
@@ -32,21 +32,4 @@ export interface ClearConf {
     y: number
     w: number
     h: number
-}
-
-export const clearCommand: (conf: Omit<ClearConf, 'type'>) => DrawCmdFactory = ({ x, y, w, h } = {
-    x: 0, y: 0, w: 0, h: 0
-}) => {
-    return ctx =>
-        () => {
-            ctx.save()
-            ctx.clearRect(
-                x,
-                y,
-                w,
-                h
-            )
-            ctx.beginPath()
-            ctx.restore()
-        }
 }

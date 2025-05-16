@@ -1,6 +1,6 @@
 import { IDrawable2D } from '../drawables/index.js'
 import { Component } from '../arch/component.js'
-import { Level } from '../arch/level.js'
+import { getCurrentApplication } from '../arch/reflect.js'
 
 export interface ISprite<T = IDrawable2D> {
     readonly drawable: T
@@ -9,21 +9,22 @@ export interface ISprite<T = IDrawable2D> {
     z: number
     alpha: number
     debug: boolean
+    display: boolean
 }
 
 export class Sprite extends Component implements ISprite {
 
     static create({
-        drawable, anchor, transform, z, alpha, debug
+        drawable, anchor, transform, z, alpha, debug, display
     }: Partial<Omit<ISprite, 'drawable'>> & Pick<ISprite, 'drawable'>): Sprite {
         return new Sprite(
-            //@ts-ignore
             drawable,
-            transform ?? new DOMMatrix(),
-            anchor ?? [0.5, 0.5],
-            z ?? 0,
-            alpha ?? 1,
-            debug ?? false
+            transform,
+            anchor,
+            z,
+            alpha,
+            debug,
+            display
         )
     }
 
@@ -34,6 +35,7 @@ export class Sprite extends Component implements ISprite {
         public z = 0,
         public alpha = 1,
         public debug = false,
+        public display = true,
     ){
         super()
     }
@@ -63,12 +65,12 @@ export class Sprite extends Component implements ISprite {
             case 'shape': {
                 const { points } = this.drawable
                 const p1 = points[0]
-                let left = p1[0],
-                    right = p1[0],
-                    top = p1[0],
-                    bottom = p1[1]
+                let left = p1.x,
+                    right = p1.x,
+                    top = p1.y,
+                    bottom = p1.y
 
-                points.slice(1).forEach(([ x, y ]) => {
+                points.slice(1).forEach(({ x, y }) => {
                     if (x < left) {
                         left = x
                     }
@@ -99,6 +101,14 @@ export class Sprite extends Component implements ISprite {
                 return [0, 0]
             }
         }
+    }
+
+    update(): void {
+        getCurrentApplication().getRenderer().submit({
+            drawable: this.drawable,
+            transfrom: this.getWorldTransform(),
+            z: this.z,
+        })
     }
     
 }

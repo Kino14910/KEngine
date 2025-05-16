@@ -1,7 +1,6 @@
 import { Component } from "../../arch/component.js"
 import { Delegate } from "../../arch/delegate.js"
 import { Option } from "../../arch/match.js"
-import { IAnimationCallback } from "./animCallback.js"
 import { IAnimationTrack } from "./animTrack.js"
 
 export interface Frame2D {
@@ -12,6 +11,7 @@ export interface Frame2D {
 }
 
 export interface IAnimation {
+    readonly id: string
     readonly onCompeleteDelegate: Delegate<[]>
     duration: number
     loop: boolean
@@ -29,10 +29,11 @@ export interface IAnimation {
     update(dt: number): void
 }
 
-export class Animation implements IAnimation, IAnimationCallback {
+export class Animation implements IAnimation {
     private tracks: Map<string, IAnimationTrack> = new Map()
 
     constructor(
+        public readonly id: string,
         public duration: number,
         public loop: boolean = true,
         public dilation: number = 1,
@@ -51,6 +52,7 @@ export class Animation implements IAnimation, IAnimationCallback {
     play() {
         this._isPlaying = true
         this._lastUpdateTime = Date.now()
+        this.tracks.forEach(track => track.start?.())
     }
 
     pause() {
@@ -60,10 +62,12 @@ export class Animation implements IAnimation, IAnimationCallback {
     stop() {
         this._isPlaying = false
         this.playbackTime = 0
+        this.tracks.forEach(track => track.end?.())
     }
 
     addTrack(track: IAnimationTrack): IAnimation {
         this.tracks.set(track.id, track)
+        track.attachTo(this)
         return this
     }
 
@@ -92,7 +96,7 @@ export class Animation implements IAnimation, IAnimationCallback {
                 } else {
                     this.playbackTime = this.duration
                     this._isPlaying = false
-                    this.onComplete()
+                    this.onCompeleteDelegate.exec()
                 }
             }
         }
@@ -111,14 +115,16 @@ export class Animation implements IAnimation, IAnimationCallback {
      */
     //@ts-ignore
     getController(): AnimationControllerComponent {}
-
-    onComplete() {
-        this.onCompeleteDelegate.exec()
-    }
 }
 
 export class AnimationControllerComponent extends Component {
     private readonly animationMapping: Map<string, IAnimation> = new Map()
+
+    constructor(...anims: IAnimation[]) {
+        super()
+
+        anims.forEach(anim => this.addAnimation(anim))
+    }
 
     start(): void {}
 
@@ -126,9 +132,10 @@ export class AnimationControllerComponent extends Component {
         this.animationMapping.forEach(animation => animation.update(dt))
     }
 
-    addAnimation(id: string, animation: IAnimation): void {
-        this.animationMapping.set(id, animation)
+    addAnimation(animation: IAnimation): AnimationControllerComponent {
+        this.animationMapping.set(animation.id, animation)
         animation.getController = () => this
+        return this
     }
 
     removeAnimation(id: string): void {

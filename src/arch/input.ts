@@ -30,7 +30,7 @@ export class ClientInput {
         return this.customInputs.get(type)
     }
 
-    static registerInput(): void {
+    static registerInputs(): void {
         if (!this.isRegistered) {
             window.addEventListener('keydown', e => this.keyPressing.add(e.code))
             window.addEventListener('keyup', e => this.keyPressing.delete(e.code))

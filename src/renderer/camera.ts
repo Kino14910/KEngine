@@ -13,6 +13,7 @@ export interface ICamera {
     fov: number
     near: number
     far: number
+    aspectRatio: number
 }
 
 export interface ICameraComponent extends ICamera, IComponent {}
@@ -30,6 +31,7 @@ export class CameraComponent extends Component implements ICamera {
         public fov: number = 90,
         public near: number = -0.5,
         public far: number = 1,
+        public aspectRatio: number = 16 / 9
     ) {
         super()
     }

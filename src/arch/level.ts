@@ -1,10 +1,7 @@
 import { IDrawable2D } from "../drawables/index.js"
-import { DrawReceiver } from "../renderer/drawCommand.js"
-import { LocalCamera, LocalCamera3D } from "../renderer/localCamera.js"
-import { IPainter, Painter } from "../renderer/painter.js"
-import { IRenderer, Renderer2D, Scheduler } from "../renderer/renderer.js"
+import { LocalCamera } from "../renderer/localCamera.js"
+import { Scheduler } from "../renderer/renderer.js"
 import { ConstructorOf } from "./component.js"
-import { ClientInput } from "./input.js"
 import { INode, INodeManager, InsertPosition, IPrefabManager, KNode, Prefab, Prefabs } from "./node.js"
 
 export interface IComponentsManager {
@@ -14,15 +11,9 @@ export interface IComponentsManager {
 
 export interface ILevelRenderer {
     dilation: number
-    camera: LocalCamera
-    renderLevel(renderOnce: () => void): void
+    updateLevel(renderOnce: () => void): void
 }
 
-export interface IWindowManager {
-    getRenderer(): IRenderer
-    painter?: IPainter<unknown>
-    createPainter(canvas: HTMLCanvasElement, scheduler: Scheduler, pixelArt: boolean): IPainter<unknown>
-}
 
 export interface RenderInfo {
     drawable: IDrawable2D
@@ -32,23 +23,10 @@ export interface RenderInfo {
     debug: boolean
 }
 
-export class Level implements INodeManager, IWindowManager, ILevelRenderer, IComponentsManager, IPrefabManager {
+export class Level implements INodeManager, ILevelRenderer, IComponentsManager, IPrefabManager {
     readonly Root: INode = new KNode('root', null as any)
 
-    public renderer?: IRenderer
-    public painter?: IPainter<unknown>
-    public camera: LocalCamera = new LocalCamera3D()
     public dilation = 1
-
-    constructor() {
-        ClientInput.registerInput()
-    }
-
-    static createFromPrefab(prefab: ConstructorOf<Prefab>) {
-        const lvl = new Level()
-        lvl.loadPrefab(prefab, lvl.Root)
-        return lvl
-    }
 
     private _lastUpdateTime = 0
     public deltaUpdate = 0
@@ -118,40 +96,50 @@ export class Level implements INodeManager, IWindowManager, ILevelRenderer, ICom
         return result
     }
 
-    getRenderer() {
-        return this.renderer || (this.renderer = this.painter!.renderer)
+    removeChildren(node: INode): void {
+        node.childNodes.length = 0
     }
 
-    createPainter(canvas: HTMLCanvasElement, scheduler: Scheduler, pixelArt=false): IPainter<unknown> {
-        const painter = new Painter(
-            new Renderer2D(
-                canvas,
-                new DrawReceiver(),
-                scheduler,
-                pixelArt
-            )
-        )
-
-        return this.painter = painter
-    }
-
-    renderLevel(renderOnce: () => void): void {
-        if (!this.painter) {
-            return
-        }
-
+    updateLevel(beforeRender: () => void): void {
         this.calcDeltaUpdate()
         this.traverse(this.Root, node => node.componentManager.update(this.deltaUpdate, this))
-        this.camera.renderLevel(this)
 
-        renderOnce()
+        beforeRender()
     }
 
     start(): void {
         this.traverse(this.Root, node => node.componentManager.start(node))
     }
 
+    private readonly requiredPrefabs = new Set<ConstructorOf<Prefab>>()
+
     loadPrefab(prefab: ConstructorOf<Prefab>, parent: INode = this.Root): Promise<INode> | undefined {
+        this.requiredPrefabs.add(prefab)
         return Prefabs.instantiate(this, parent, prefab)
     }
+
+    unloadPrefab(prefab: ConstructorOf<Prefab>): void {
+        this.requiredPrefabs.delete(prefab)
+        Prefabs.destroy(this, prefab)
+    }
+
+    loadPrefabs(...prefabs: ConstructorOf<Prefab>[]): Promise<(INode | undefined)[]> {
+        return Promise.all(prefabs.map(prefab => this.loadPrefab(prefab)))
+    }
+
+    unloadPrefabs(...prefabs: ConstructorOf<Prefab>[]): void {
+        prefabs.forEach(prefab => this.unloadPrefab(prefab))
+    }
+
+    unloadAllPrefabs(): void {
+        this.requiredPrefabs.forEach(prefab => this.unloadPrefab(prefab))
+    }
+}
+
+export interface Level2DMeta {
+    width: number
+    height: number
+    pixelArt: boolean
+    canvas: HTMLCanvasElement
+    scheduler: Scheduler
 }

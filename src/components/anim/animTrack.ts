@@ -16,6 +16,8 @@ export interface IAnimationTrack {
     handleTrackUpdate(dt: number, time: number): void
     getAnimation(): IAnimation
     update?(dt: number, time: number): void
+    start?(): void
+    end?(): void
 }
 
 export interface IAnimationNotify {

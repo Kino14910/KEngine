@@ -1,5 +1,5 @@
 import { ComponentManager, ConstructorOf, IComponent, IComponentManager } from "./component.js"
-import { IComponentsManager, ILevelRenderer, IWindowManager, Level } from "./level.js"
+import { IComponentsManager, ILevelRenderer, Level } from "./level.js"
 
 export interface INode {
     readonly id: string
@@ -50,16 +50,19 @@ export interface INodeManager {
     delete(node: INode): void
     update(value: INode, old: INode): boolean
     find(id: string): INode | null
+    removeChildren(node: INode): void
 }
 
-export type InstantiateContext = INodeManager & IWindowManager & ILevelRenderer & IComponentsManager & IPrefabManager
+export type InstantiateContext = INodeManager & ILevelRenderer & IComponentsManager & IPrefabManager
 
 export interface Prefab {
     instantiate(context: InstantiateContext, parent: INode): Promise<INode>
+    destroy(context: InstantiateContext, parent: INode): void
 }
 
 export class Prefabs {
     static readonly prefabs = new Map<ConstructorOf<Prefab>, Prefab>()
+    static readonly prefabNodeMapping = new Map<Prefab, INode>()
 
     static instantiate(lvl: Level, parent: INode, prefab: ConstructorOf<Prefab>): Promise<INode> | undefined {
         let prefabInstance = Prefabs.prefabs.get(prefab)
@@ -70,10 +73,26 @@ export class Prefabs {
             }
         }
 
+        this.prefabNodeMapping.set(prefabInstance, parent)
+
         return prefabInstance?.instantiate?.(lvl, parent)
+    }
+
+    static destroy(lvl: Level, prefab: ConstructorOf<Prefab>): void {
+        const prefabInstance = Prefabs.prefabs.get(prefab)
+        if (prefabInstance) {
+            prefabInstance.destroy(lvl, this.prefabNodeMapping.get(prefabInstance)!)
+            Prefabs.prefabNodeMapping.delete(prefabInstance)
+        }
+
+        Prefabs.prefabs.delete(prefab)
     }
 }
 
 export interface IPrefabManager {
     loadPrefab(prefab: ConstructorOf<Prefab>, parent?: INode): Promise<INode> | undefined
+    unloadPrefab(prefab: ConstructorOf<Prefab>): void
+    loadPrefabs(...prefabs: ConstructorOf<Prefab>[]): Promise<(INode | undefined)[]>
+    unloadPrefabs(...prefabs: ConstructorOf<Prefab>[]): void
+    unloadAllPrefabs(): void
 }

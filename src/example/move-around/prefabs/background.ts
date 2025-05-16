@@ -1,4 +1,4 @@
-import { KNode, Prefab, INodeManager, InsertPosition } from "../../../arch/node.js"
+import { KNode, Prefab, INodeManager, InsertPosition, INode, InstantiateContext } from "../../../arch/node.js"
 import { Sprite } from "../../../components/sprite.js"
 import { DefaultImageDrawable } from "../../../drawables/image.js"
 import { res } from "../../../resource/imageBitmap.js"
@@ -22,5 +22,9 @@ export class BackgroundPrefab implements Prefab {
         )
 
         return bg
+    }
+
+    destroy(context: InstantiateContext, parent: INode): void {
+        context.removeChildren(parent)
     }
 }
